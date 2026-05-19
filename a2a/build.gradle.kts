@@ -16,8 +16,7 @@
 
 plugins {
   kotlin("multiplatform")
-  id("maven-publish")
-  id("signing")
+  alias(libs.plugins.vanniktech.maven.publish)
 }
 
 kotlin {
@@ -47,9 +46,14 @@ kotlin {
   }
 }
 
-publishing {
-  publications.withType<MavenPublication> {
-    artifactId =
-      if (name == "kotlinMultiplatform") "google-adk-kotlin-a2a" else "google-adk-kotlin-a2a-$name"
-  }
+// See comment in `core/build.gradle.kts` for how the vanniktech plugin
+// derives per-target artifact IDs for multiplatform modules and why we
+// override the javadoc jar source to Dokka.
+mavenPublishing {
+  configure(
+    com.vanniktech.maven.publish.KotlinMultiplatform(
+      javadocJar = com.vanniktech.maven.publish.JavadocJar.Dokka("dokkaHtml")
+    )
+  )
+  coordinates(artifactId = "google-adk-kotlin-a2a")
 }

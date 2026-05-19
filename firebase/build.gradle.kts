@@ -16,8 +16,7 @@
 
 plugins {
   id("com.android.library")
-  id("maven-publish")
-  id("signing")
+  alias(libs.plugins.vanniktech.maven.publish)
   kotlin("plugin.serialization")
   id("org.jetbrains.kotlin.android")
 }
@@ -48,7 +47,9 @@ android {
     }
   }
 
-  publishing { singleVariant("release") { withSourcesJar() } }
+  // The `singleVariant("release") { withSourcesJar() }` configuration that
+  // used to live here is now managed by the vanniktech plugin via the
+  // `AndroidSingleVariantLibrary` configurator below.
 
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
@@ -66,16 +67,23 @@ android {
   }
 }
 
-afterEvaluate {
-  publishing {
-    publications {
-      create<MavenPublication>("release") {
-        groupId = project.group.toString()
-        artifactId = "google-adk-kotlin-firebase-android"
-        version = project.version.toString()
-
-        from(components["release"])
-      }
-    }
-  }
+mavenPublishing {
+  // Publishes the Android `release` variant as a single AAR with sources and
+  // javadoc jars. The other modules wire their `-javadoc.jar` to Dokka's HTML
+  // output, but `AndroidSingleVariantLibrary` does not expose a Dokka hook;
+  // it always uses AGP's `withJavadocJar()`, which runs Gradle's `javadoc`
+  // task. For pure-Kotlin Android sources that produces an effectively empty
+  // jar, but it still satisfies Maven Central's per-module requirement.
+  // Replacing it with a Dokka-fed jar would require building the artifact
+  // manually and attaching it to the auto-created publication after
+  // evaluation; that is left as a follow-up. Shared POM metadata and signing
+  // are configured in the root `build.gradle.kts`.
+  configure(
+    com.vanniktech.maven.publish.AndroidSingleVariantLibrary(
+      variant = "release",
+      sourcesJar = true,
+      publishJavadocJar = true,
+    )
+  )
+  coordinates(artifactId = "google-adk-kotlin-firebase-android")
 }

@@ -17,6 +17,7 @@
 plugins {
   // Define plugins but do not apply them to the root project
   alias(libs.plugins.dokka)
+  alias(libs.plugins.vanniktech.maven.publish) apply false
   kotlin("jvm") version "2.1.20" apply false
   kotlin("multiplatform") version "2.1.20" apply false
   id("com.android.library") version "8.13.0" apply false
@@ -27,11 +28,6 @@ plugins {
 val jdkVersion = providers.gradleProperty("jdkVersion").getOrElse("17").toInt()
 val androidCompileSdk = providers.gradleProperty("androidCompileSdk").getOrElse("34").toInt()
 val androidMinSdk = providers.gradleProperty("androidMinSdk").getOrElse("26").toInt()
-val snapshotUrl =
-  findProperty("snapshotUrl") as? String
-    ?: "https://central.sonatype.com/repository/maven-snapshots/"
-val releaseUrl =
-  findProperty("releaseUrl") as? String ?: "https://central.sonatype.com/api/v1/publisher"
 
 allprojects {
   group = "com.google.adk"
@@ -75,73 +71,51 @@ subprojects {
     compilerOptions { optIn.add("kotlin.time.ExperimentalTime") }
   }
 
-  afterEvaluate {
-    val isRemotePublish =
-      gradle.startParameter.taskNames.any {
-        it.contains("publish", ignoreCase = true) && !it.contains("Local", ignoreCase = true)
-      }
+  // Publishing is configured once here for any subproject that applies the
+  // vanniktech plugin (`com.vanniktech.maven.publish`). Per-module build files
+  // are responsible only for declaring coordinates via `mavenPublishing {
+  // coordinates(...) }`; POM metadata, signing, and the upload destination are
+  // all handled centrally.
+  //
+  // Credentials and signing material are read from environment variables when
+  // running on CI (see `.github/workflows/publish.yml`):
+  //   - ORG_GRADLE_PROJECT_mavenCentralUsername / ...Password
+  //   - ORG_GRADLE_PROJECT_signingInMemoryKey  / ...KeyId / ...KeyPassword
+  // For local publishing, the same values can be set as Gradle properties in
+  // ~/.gradle/gradle.properties.
+  plugins.withId("com.vanniktech.maven.publish") {
+    configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
+      // Publish releases to Maven Central via the new Central Portal and let
+      // Sonatype automatically release once validation passes. Snapshot
+      // versions are routed to the Central snapshots repo automatically based
+      // on the project version suffix.
+      publishToMavenCentral(
+        host = com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL,
+        automaticRelease = true,
+      )
+      signAllPublications()
 
-    if (!isRemotePublish) return@afterEvaluate
-
-    if (plugins.hasPlugin("maven-publish")) {
-      configure<PublishingExtension> {
-        val effectiveStagingRepoUrl =
-          if (version.toString().endsWith("SNAPSHOT")) {
-            snapshotUrl
-          } else {
-            releaseUrl
-          }
-
-        val sonatypeUsername = System.getenv("SONATYPE_USERNAME")
-        val sonatypePassword = System.getenv("SONATYPE_PASSWORD")
-        repositories {
-          maven {
-            name = "sonatype"
-            url = uri(effectiveStagingRepoUrl)
-            credentials {
-              username = sonatypeUsername
-              password = sonatypePassword
-            }
-          }
-        }
-        publications.withType<MavenPublication> {
-          pom {
-            name.set("Google Agent Development Kit")
-            description.set("Google Agent Development Kit (ADK) for Kotlin")
-            url.set("https://github.com/google/adk-kotlin")
-            licenses {
-              license {
-                name.set("The Apache License, Version 2.0")
-                url.set("https://www.apache.org/licenses/LICENSE-2.0")
-              }
-            }
-            developers {
-              developer {
-                organization.set("Google Inc.")
-                organizationUrl.set("https://www.google.com")
-              }
-            }
-            scm {
-              connection.set("scm:git:git@github.com:google/adk-kotlin.git")
-              developerConnection.set("scm:git:git@github.com:google/adk-kotlin.git")
-              url.set("https://github.com/google/adk-kotlin")
-            }
+      pom {
+        name.set("Google Agent Development Kit")
+        description.set("Google Agent Development Kit (ADK) for Kotlin")
+        url.set("https://github.com/google/adk-kotlin")
+        licenses {
+          license {
+            name.set("The Apache License, Version 2.0")
+            url.set("https://www.apache.org/licenses/LICENSE-2.0")
           }
         }
-      }
-    }
-
-    if (plugins.hasPlugin("signing")) {
-      configure<SigningExtension> {
-        val signingKey = System.getenv("SIGNING_KEY")
-        val signingPassword = System.getenv("SIGNING_PASSWORD")
-
-        if (signingKey != null) {
-          useInMemoryPgpKeys(signingKey, signingPassword)
-        } else if (project.hasProperty("signing.gnupg.keyName")) {
-          useGpgCmd()
+        developers {
+          developer {
+            organization.set("Google Inc.")
+            organizationUrl.set("https://www.google.com")
+          }
         }
-        sign(extensions.getByType<PublishingExtension>().publications)
+        scm {
+          connection.set("scm:git:git@github.com:google/adk-kotlin.git")
+          developerConnection.set("scm:git:git@github.com:google/adk-kotlin.git")
+          url.set("https://github.com/google/adk-kotlin")
+        }
       }
     }
   }

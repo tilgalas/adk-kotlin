@@ -17,8 +17,7 @@
 plugins {
   kotlin("multiplatform")
   id("com.android.library")
-  id("maven-publish")
-  id("signing")
+  alias(libs.plugins.vanniktech.maven.publish)
 }
 
 kotlin {
@@ -109,10 +108,18 @@ android {
   }
 }
 
-publishing {
-  publications.withType<MavenPublication> {
-    artifactId =
-      if (name == "kotlinMultiplatform") "google-adk-kotlin-core"
-      else "google-adk-kotlin-core-$name"
-  }
+mavenPublishing {
+  // The vanniktech plugin auto-creates publications for the multiplatform
+  // root and each target (jvm, android), naming them `google-adk-kotlin-core`
+  // and `google-adk-kotlin-core-<target>` respectively, matching the previous
+  // `maven-publish` layout. Bundle Dokka's HTML output as the `-javadoc.jar`
+  // (the plugin's default is an empty jar because there is no built-in
+  // multiplatform javadoc task). Shared POM metadata and signing are
+  // configured in the root `build.gradle.kts`.
+  configure(
+    com.vanniktech.maven.publish.KotlinMultiplatform(
+      javadocJar = com.vanniktech.maven.publish.JavadocJar.Dokka("dokkaHtml")
+    )
+  )
+  coordinates(artifactId = "google-adk-kotlin-core")
 }

@@ -16,18 +16,21 @@
 
 plugins {
   kotlin("jvm")
-  id("maven-publish")
-  id("signing")
+  alias(libs.plugins.vanniktech.maven.publish)
   id("application")
 }
 
-publishing {
-  publications {
-    create<MavenPublication>("maven") {
-      from(components["java"])
-      artifactId = "google-adk-kotlin-webserver"
-    }
-  }
+mavenPublishing {
+  // Bundle the Dokka HTML output as the `-javadoc.jar`. The vanniktech
+  // plugin's default for `KotlinJvm` is an empty jar; we override here so
+  // Central ships real API docs.
+  configure(
+    com.vanniktech.maven.publish.KotlinJvm(
+      javadocJar = com.vanniktech.maven.publish.JavadocJar.Dokka("dokkaHtml"),
+      sourcesJar = true,
+    )
+  )
+  coordinates(artifactId = "google-adk-kotlin-webserver")
 }
 
 sourceSets {
