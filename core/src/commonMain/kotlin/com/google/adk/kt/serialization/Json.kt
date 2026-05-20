@@ -21,6 +21,9 @@ interface Json {
   /** Serializes an object to a JSON string. */
   fun toJsonString(obj: Any?): String
 
+  /** Parses a JSON string to a map. */
+  fun fromJsonToMap(json: String): Map<String, Any?>
+
   companion object : Json by getJson()
 }
 

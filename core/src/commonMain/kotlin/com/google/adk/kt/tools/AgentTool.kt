@@ -16,6 +16,7 @@
 
 package com.google.adk.kt.tools
 
+import com.google.adk.kt.SchemaUtils
 import com.google.adk.kt.agents.BaseAgent
 import com.google.adk.kt.agents.LlmAgent
 import com.google.adk.kt.runners.InMemoryRunner
@@ -69,13 +70,14 @@ class AgentTool(val agent: BaseAgent, val skipSummarization: Boolean = false) :
     )
   }
 
-  override suspend fun run(context: ToolContext, args: Map<String, Any>): Any {
+  override suspend fun run(context: ToolContext, args: Map<String, Any>): String {
     if (skipSummarization) {
       context.actions.skipSummarization = true
     }
 
     val content =
       if (inputSchema != null) {
+        SchemaUtils.validateMapOnSchema(args, inputSchema!!, argsName = "Input").getOrThrow()
         Content(parts = listOf(Part(text = Json.toJsonString(args))))
       } else {
         val request =
@@ -116,6 +118,7 @@ class AgentTool(val agent: BaseAgent, val skipSummarization: Boolean = false) :
           ?.parts
           ?.filter { it.thought != true }
           ?.joinToString("\n") { it.text ?: "" } ?: ""
+
       return text
     }
 

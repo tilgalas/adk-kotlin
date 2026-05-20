@@ -47,6 +47,10 @@ private object JvmJson : Json {
   override fun toJsonString(obj: Any?): String {
     return gson.toJson(obj)
   }
+
+  override fun fromJsonToMap(json: String): Map<String, Any?> {
+    return gson.fromJson(json, object : com.google.gson.reflect.TypeToken<Map<String, Any?>>() {}.type)
+  }
 }
 
 internal actual fun getJson(): Json = JvmJson

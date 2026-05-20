@@ -73,4 +73,62 @@ class JsonTest {
     val abstractJson = Gson().fromJson(json, Map::class.java)
     assertThat(abstractJson["jsonSerializable"]).isNull()
   }
+
+  @Test
+  fun fromJsonToMap_flatObject_returnsParsedMap() {
+    val json = """{"name":"John","active":true}"""
+
+    val result = Json.fromJsonToMap(json)
+
+    assertThat(result).containsExactly("name", "John", "active", true)
+  }
+
+  @Test
+  fun fromJsonToMap_numericValues_returnsDoubles() {
+    // Gson's default deserialization of Map<String, Any?> represents all JSON numbers as Doubles,
+    // even integral ones. Documenting this so callers can pre-convert if needed.
+    val json = """{"age":30,"price":1.5}"""
+
+    val result = Json.fromJsonToMap(json)
+
+    assertThat(result["age"]).isEqualTo(30.0)
+    assertThat(result["price"]).isEqualTo(1.5)
+  }
+
+  @Test
+  fun fromJsonToMap_nestedObject_returnsNestedMap() {
+    val json = """{"address":{"city":"NYC","zip":"10001"}}"""
+
+    val result = Json.fromJsonToMap(json)
+
+    assertThat(result["address"]).isEqualTo(mapOf("city" to "NYC", "zip" to "10001"))
+  }
+
+  @Test
+  fun fromJsonToMap_arrayValues_returnsList() {
+    val json = """{"tags":["a","b","c"]}"""
+
+    val result = Json.fromJsonToMap(json)
+
+    assertThat(result["tags"]).isEqualTo(listOf("a", "b", "c"))
+  }
+
+  @Test
+  fun fromJsonToMap_nullValue_returnsNullEntry() {
+    val json = """{"missing":null}"""
+
+    val result = Json.fromJsonToMap(json)
+
+    assertThat(result).containsKey("missing")
+    assertThat(result["missing"]).isNull()
+  }
+
+  @Test
+  fun fromJsonToMap_emptyObject_returnsEmptyMap() {
+    val json = "{}"
+
+    val result = Json.fromJsonToMap(json)
+
+    assertThat(result).isEmpty()
+  }
 }

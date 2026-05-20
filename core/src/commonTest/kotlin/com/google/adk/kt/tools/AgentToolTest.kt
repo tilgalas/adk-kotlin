@@ -37,6 +37,7 @@ import com.google.adk.kt.types.Schema
 import com.google.adk.kt.types.Type
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -246,6 +247,72 @@ class AgentToolTest {
     assertEquals("Response from inner agent", functionResponse.response["result"])
 
     assertEquals("Final Answer", events[2].content?.parts?.first()?.text)
+  }
+
+  @Test
+  fun run_withValidInputSchema_executesInnerAgent() = runTest {
+    val inputSchema =
+      Schema(
+        type = Type.OBJECT,
+        properties =
+          mapOf("name" to Schema(type = Type.STRING), "age" to Schema(type = Type.INTEGER)),
+        required = listOf("name"),
+      )
+    val responseContent = Content(parts = listOf(Part(text = "Hello John")))
+    val model = DummyModel("test") { flowOf(LlmResponse(content = responseContent)) }
+    val agent = LlmAgent(name = "inner-agent", model = model, inputSchema = inputSchema)
+    val tool = AgentTool(agent)
+    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+
+    val result = tool.run(context, mapOf("name" to "John", "age" to 30L))
+
+    assertEquals("Hello John", result)
+  }
+
+  @Test
+  fun run_withInvalidInputSchema_throwsIllegalArgumentException() = runTest {
+    val inputSchema =
+      Schema(
+        type = Type.OBJECT,
+        properties = mapOf("age" to Schema(type = Type.INTEGER)),
+        required = listOf("age"),
+      )
+    val agent =
+      LlmAgent(name = "inner-agent", model = DummyModel("test"), inputSchema = inputSchema)
+    val tool = AgentTool(agent)
+    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+
+    assertFailsWith<IllegalArgumentException> { tool.run(context, mapOf("age" to "not-a-number")) }
+  }
+
+  @Test
+  fun run_withMissingRequiredArg_throwsIllegalArgumentException() = runTest {
+    val inputSchema =
+      Schema(
+        type = Type.OBJECT,
+        properties = mapOf("name" to Schema(type = Type.STRING)),
+        required = listOf("name"),
+      )
+    val agent =
+      LlmAgent(name = "inner-agent", model = DummyModel("test"), inputSchema = inputSchema)
+    val tool = AgentTool(agent)
+    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+
+    assertFailsWith<IllegalArgumentException> { tool.run(context, emptyMap()) }
+  }
+
+  @Test
+  fun run_withExtraArgNotInSchema_throwsIllegalArgumentException() = runTest {
+    val inputSchema =
+      Schema(type = Type.OBJECT, properties = mapOf("name" to Schema(type = Type.STRING)))
+    val agent =
+      LlmAgent(name = "inner-agent", model = DummyModel("test"), inputSchema = inputSchema)
+    val tool = AgentTool(agent)
+    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+
+    assertFailsWith<IllegalArgumentException> {
+      tool.run(context, mapOf("name" to "John", "unexpected" to "value"))
+    }
   }
 
   private fun getTestInvocationContext(agent: com.google.adk.kt.agents.BaseAgent) =

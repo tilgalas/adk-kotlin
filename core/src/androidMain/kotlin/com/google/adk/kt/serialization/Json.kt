@@ -34,6 +34,42 @@ private object AndroidJson : Json {
     }
   }
 
+  override fun fromJsonToMap(json: String): Map<String, Any?> {
+    return toMap(JSONObject(json))
+  }
+
+  private fun toMap(json: JSONObject): Map<String, Any?> {
+    val map = mutableMapOf<String, Any?>()
+    val keys = json.keys()
+    while (keys.hasNext()) {
+      val key = keys.next()
+      map[key] = unwrap(json.get(key))
+    }
+    return map
+  }
+
+  private fun toList(array: JSONArray): List<Any?> {
+    val list = mutableListOf<Any?>()
+    for (i in 0 until array.length()) {
+      list.add(unwrap(array.get(i)))
+    }
+    return list
+  }
+
+  /**
+   * Converts a raw value returned by `org.json` into a plain Kotlin value.
+   *
+   * `org.json` returns native types (`Boolean`, `Int`, `Long`, `Double`, `String`) directly, so
+   * only the container types and the `NULL` sentinel need translation.
+   */
+  private fun unwrap(value: Any?): Any? =
+    when (value) {
+      JSONObject.NULL -> null
+      is JSONObject -> toMap(value)
+      is JSONArray -> toList(value)
+      else -> value
+    }
+
   private fun wrap(obj: Any?): Any? {
     return when (obj) {
       null -> JSONObject.NULL
