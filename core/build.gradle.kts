@@ -72,9 +72,10 @@ kotlin {
       dependsOn(commonJvmAndroidMain)
       dependencies {
         // Use standard Android genai or similar if available for OSS
-        implementation(
-          libs.google.genai
-        ) // Same as JVM if it's multiplatform, or use specific android one if separate.
+        implementation(libs.google.genai.get().toString()) {
+            exclude(group = "com.google.protobuf", module = "protobuf-java")
+        } // Same as JVM if it's multiplatform, or use specific android one if separate.
+        implementation(libs.google.protobuf.javalite)
         implementation(
           libs.google.auth.oauth2.http
         ) // Android compatible version or use separate for Android if needed.
