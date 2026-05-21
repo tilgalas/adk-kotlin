@@ -30,19 +30,18 @@ class AgentContextTest {
 
   @Test
   fun agent_instantiation_setsDefaultValues() {
-    val agent = DummyAgent("test-agent")
+    val agent = DummyAgent()
     assertEquals("test-agent", agent.name)
     assertTrue(agent.subAgents.isEmpty())
   }
 
   @Test
   fun invocationContext_creation_setsDefaultValues() {
-    val agent = DummyAgent("test-agent")
     val context =
       InvocationContext(
         session = testSession(),
         runConfig = null,
-        agent = agent,
+        agent = DummyAgent(),
         userContent = Content(role = Role.USER),
         invocationId = "invocation-id",
       )
@@ -54,12 +53,11 @@ class AgentContextTest {
 
   @Test
   fun readonlyContext_creation_setsDefaultValues() {
-    val agent = DummyAgent("test-agent")
     val context =
       InvocationContext(
         session = testSession(),
         runConfig = null,
-        agent = agent,
+        agent = DummyAgent(),
         userContent = Content(role = Role.USER),
         invocationId = "invocation-id",
       )
@@ -71,12 +69,11 @@ class AgentContextTest {
 
   @Test
   fun callbackContext_creation_setsDefaultValues() = runBlocking {
-    val agent = DummyAgent("test-agent")
     val context =
       InvocationContext(
         session = testSession(),
         runConfig = null,
-        agent = agent,
+        agent = DummyAgent(),
         userContent = Content(role = Role.USER),
         invocationId = "invocation-id",
       )

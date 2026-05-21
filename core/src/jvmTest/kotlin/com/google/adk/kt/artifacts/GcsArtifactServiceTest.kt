@@ -16,11 +16,10 @@
 
 package com.google.adk.kt.artifacts
 
-import com.google.adk.kt.agents.BaseAgent
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.events.Event
 import com.google.adk.kt.runners.InMemoryRunner
 import com.google.adk.kt.sessions.SessionKey
+import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.modelMessage
 import com.google.adk.kt.testing.userMessage
 import com.google.adk.kt.types.Blob
@@ -35,8 +34,6 @@ import com.google.common.truth.Truth.assertThat
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.mockito.kotlin.any
@@ -135,14 +132,15 @@ class GcsArtifactServiceTest {
     }
 
     val agent =
-      object : BaseAgent(name = "artifact-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow {
-          val artifactService = context.artifactService
+      DummyAgent(
+        name = "artifact-agent",
+        onRunAsync = { ctx ->
+          val artifactService = ctx.artifactService
           assertThat(artifactService).isNotNull()
           val unused = artifactService!!.saveArtifact(SESSION_KEY, FILENAME, artifact)
           emit(Event(author = Role.MODEL, content = modelMessage("Saved tracking output")))
-        }
-      }
+        },
+      )
 
     val runner = InMemoryRunner(agent = agent, artifactService = service)
     val events =

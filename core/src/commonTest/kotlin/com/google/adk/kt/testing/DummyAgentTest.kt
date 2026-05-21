@@ -23,6 +23,7 @@ import com.google.adk.kt.types.Role
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -32,16 +33,37 @@ class DummyAgentTest {
   fun agent_instantiation_setsDefaultValues() {
     val agent = DummyAgent("test-agent")
     assertEquals("test-agent", agent.name)
-    assertEquals("test", DummyAgent().name)
+    assertEquals("test-agent", DummyAgent().name)
+    assertEquals("", agent.description)
     assertTrue(agent.subAgents.isEmpty())
     assertTrue(agent.beforeAgentCallbacks.isEmpty())
     assertTrue(agent.afterAgentCallbacks.isEmpty())
+    assertFalse(agent.disallowTransferToParent)
+    assertFalse(agent.disallowTransferToPeers)
+  }
+
+  @Test
+  fun agent_instantiation_propagatesDescription() {
+    val agent = DummyAgent(description = "A helpful test agent")
+    assertEquals("A helpful test agent", agent.description)
+  }
+
+  @Test
+  fun agent_instantiation_propagatesDisallowTransferToParent() {
+    val agent = DummyAgent(disallowTransferToParent = true)
+    assertTrue(agent.disallowTransferToParent)
+  }
+
+  @Test
+  fun agent_instantiation_propagatesDisallowTransferToPeers() {
+    val agent = DummyAgent(disallowTransferToPeers = true)
+    assertTrue(agent.disallowTransferToPeers)
   }
 
   @Test
   fun runAsync_executesOnRunAsync() = runBlocking {
     var asyncCalled = false
-    val agent = DummyAgent(name = "test-agent", onRunAsync = { asyncCalled = true })
+    val agent = DummyAgent(onRunAsync = { asyncCalled = true })
 
     val context =
       InvocationContext(

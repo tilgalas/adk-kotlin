@@ -25,6 +25,7 @@ import com.google.adk.kt.annotations.ExperimentalResumabilityFeature
 import com.google.adk.kt.events.Event
 import com.google.adk.kt.events.EventActions
 import com.google.adk.kt.sessions.SessionKey
+import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.modelMessage
 import com.google.adk.kt.testing.userFunctionResponse
 import com.google.adk.kt.testing.userMessage
@@ -35,8 +36,6 @@ import com.google.adk.kt.types.Role
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 
 class AbstractRunnerTest {
@@ -48,25 +47,10 @@ class AbstractRunnerTest {
     }
   }
 
-  class MockAgent(
-    name: String,
-    subAgents: List<BaseAgent> = emptyList(),
-    disallowTransferToParent: Boolean = false,
-    disallowTransferToPeers: Boolean = false,
-  ) :
-    BaseAgent(
-      name = name,
-      subAgents = subAgents,
-      disallowTransferToParent = disallowTransferToParent,
-      disallowTransferToPeers = disallowTransferToPeers,
-    ) {
-    override fun runAsyncImpl(context: InvocationContext): Flow<Event> = emptyFlow()
-  }
-
   @Test
   fun findAgentToRun_withFunctionResponse_returnsTargetAgent() = runTest {
-    val subAgent = MockAgent("sub")
-    val rootAgent = MockAgent("root", subAgents = listOf(subAgent))
+    val subAgent = DummyAgent("sub")
+    val rootAgent = DummyAgent("root", subAgents = listOf(subAgent))
     val runner = TestRunner(rootAgent)
 
     val callId = "call-123"
@@ -109,8 +93,8 @@ class AbstractRunnerTest {
 
   @Test
   fun findAgentToRun_noFunctionResponse_returnsMostRecentTransferableAgent() = runTest {
-    val subAgent = MockAgent("sub")
-    val rootAgent = MockAgent("root", subAgents = listOf(subAgent))
+    val subAgent = DummyAgent("sub")
+    val rootAgent = DummyAgent("root", subAgents = listOf(subAgent))
     val runner = TestRunner(rootAgent)
 
     val event1 = Event(author = "sub", content = modelMessage("Hello"), invocationId = "inv-1")
@@ -138,8 +122,8 @@ class AbstractRunnerTest {
 
   @Test
   fun findAgentToRun_untransferableAgent_returnsRoot() = runTest {
-    val subAgent = MockAgent("sub", disallowTransferToParent = true)
-    val rootAgent = MockAgent("root", subAgents = listOf(subAgent))
+    val subAgent = DummyAgent("sub", disallowTransferToParent = true)
+    val rootAgent = DummyAgent("root", subAgents = listOf(subAgent))
     val runner = TestRunner(rootAgent)
 
     val event1 = Event(author = "sub", content = modelMessage("Hello"), invocationId = "inv-1")
@@ -167,8 +151,8 @@ class AbstractRunnerTest {
 
   @Test
   fun findAgentToRun_withStateEvents_skipsStateEvents() = runTest {
-    val subAgent = MockAgent("sub")
-    val rootAgent = MockAgent("root", subAgents = listOf(subAgent))
+    val subAgent = DummyAgent("sub")
+    val rootAgent = DummyAgent("root", subAgents = listOf(subAgent))
     val runner = TestRunner(rootAgent)
 
     val event1 = Event(author = "sub", content = modelMessage("Hello"), invocationId = "inv-1")
@@ -199,9 +183,9 @@ class AbstractRunnerTest {
 
   @Test
   fun findAgentToRun_withDisallowTransferToPeers_throwsException() = runTest {
-    val sub1 = MockAgent("sub1", disallowTransferToPeers = true)
-    val sub2 = MockAgent("sub2")
-    val rootAgent = MockAgent("root", subAgents = listOf(sub1, sub2))
+    val sub1 = DummyAgent("sub1", disallowTransferToPeers = true)
+    val sub2 = DummyAgent("sub2")
+    val rootAgent = DummyAgent("root", subAgents = listOf(sub1, sub2))
     val runner = TestRunner(rootAgent)
 
     val event1 =

@@ -16,20 +16,14 @@
 
 package com.google.adk.kt.agents
 
-import com.google.adk.kt.events.Event
 import com.google.adk.kt.logging.LoggerFactory
+import com.google.adk.kt.testing.DummyAgent
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 
 class AgentExtensionsTest {
 
   private val logger = LoggerFactory.getLogger(AgentExtensionsTest::class)
-
-  private class DummyAgent(name: String) : BaseAgent(name = name) {
-    override fun runAsyncImpl(context: InvocationContext): Flow<Event> = emptyFlow()
-  }
 
   @Test
   fun testFindIndexForResumption() {

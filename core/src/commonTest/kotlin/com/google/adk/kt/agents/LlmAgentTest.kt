@@ -27,7 +27,6 @@ import com.google.adk.kt.events.EventActions
 import com.google.adk.kt.ids.Uuid
 import com.google.adk.kt.models.LlmRequest
 import com.google.adk.kt.models.LlmResponse
-import com.google.adk.kt.models.Model
 import com.google.adk.kt.sessions.InMemorySessionService
 import com.google.adk.kt.sessions.SessionKey
 import com.google.adk.kt.testing.DummyAgent
@@ -39,7 +38,6 @@ import com.google.adk.kt.types.Content
 import com.google.adk.kt.types.FunctionCall
 import com.google.adk.kt.types.Part
 import com.google.adk.kt.types.Role
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -50,13 +48,7 @@ import org.junit.Test
 
 class LlmAgentTest {
 
-  private val testModel =
-    object : Model {
-      override val name = "test-model"
-
-      override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-        flow {}
-    }
+  private val testModel = DummyModel("test-model")
 
   @Test
   fun init_withRequiredParams_succeeds() {
@@ -167,14 +159,7 @@ class LlmAgentTest {
   @Test
   fun runAsync_modelThrowsException_processorRecovers() = runTest {
     val failingModel =
-      object : Model {
-        override val name = "failing-model"
-
-        override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-          flow {
-            throw RuntimeException("Model failed")
-          }
-      }
+      DummyModel("failing-model") { flow { throw RuntimeException("Model failed") } }
 
     val callback = OnModelErrorCallback { _, _, _ ->
       CallbackChoice.Break(LlmResponse(content = modelMessage("Fallback response")))
@@ -196,14 +181,7 @@ class LlmAgentTest {
   @Test(expected = RuntimeException::class)
   fun runAsync_modelThrowsException_noProcessor_throwsException() = runTest {
     val failingModel =
-      object : Model {
-        override val name = "failing-model"
-
-        override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-          flow {
-            throw RuntimeException("Model failed")
-          }
-      }
+      DummyModel("failing-model") { flow { throw RuntimeException("Model failed") } }
 
     val agent = LlmAgent(name = "test-agent", model = failingModel) // No processors
     val sessionService = InMemorySessionService()
@@ -217,14 +195,11 @@ class LlmAgentTest {
   fun runAsync_preparesRequestWithAllProcessorSteps() = runTest {
     var capturedRequest: LlmRequest? = null
     val customModel =
-      object : Model {
-        override val name = "custom-model"
-
-        override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-          flow {
-            capturedRequest = request
-            emit(LlmResponse(content = modelMessage("Response")))
-          }
+      DummyModel("custom-model") { request ->
+        flow {
+          capturedRequest = request
+          emit(LlmResponse(content = modelMessage("Response")))
+        }
       }
 
     val agent =

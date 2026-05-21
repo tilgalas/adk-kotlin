@@ -48,7 +48,7 @@ class CallbackContextTest {
           ),
         events = mutableListOf(),
       )
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent("test"))
+    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
     val eventActions =
       EventActions(
         stateDelta =
@@ -77,7 +77,7 @@ class CallbackContextTest {
           ),
         events = mutableListOf(),
       )
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent("test"))
+    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
     val eventActions =
       EventActions(
         stateDelta = concurrentMutableMapOf<String, Any>().apply { put("key1", State.REMOVED) }
@@ -96,7 +96,7 @@ class CallbackContextTest {
           State(concurrentMutableMapOf<String, Any>().apply { putAll(mapOf("key1" to "val1")) }),
         events = mutableListOf(),
       )
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent("test"))
+    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
     val callbackContext = context.toCallbackContext()
 
     callbackContext.updateState("key2", "val2")
@@ -117,7 +117,7 @@ class CallbackContextTest {
   @Test
   fun addSessionToMemory_throwsWhenServiceNotAvailable() = runBlocking {
     val session = testSession()
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent("test"))
+    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
     val callbackContext = context.toCallbackContext()
 
     val exception =
@@ -135,7 +135,7 @@ class CallbackContextTest {
       InvocationContext(
         session = session,
         runConfig = null,
-        agent = DummyAgent("test"),
+        agent = DummyAgent(),
         memoryService = memoryService,
       )
     val callbackContext = context.toCallbackContext()

@@ -15,7 +15,6 @@
  */
 package com.google.adk.kt.runners
 
-import com.google.adk.kt.agents.BaseAgent
 import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.LlmAgent
 import com.google.adk.kt.callbacks.CallbackChoice
@@ -24,6 +23,7 @@ import com.google.adk.kt.models.LlmResponse
 import com.google.adk.kt.plugins.Plugin
 import com.google.adk.kt.plugins.PluginManager
 import com.google.adk.kt.sessions.SessionKey
+import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyModel
 import com.google.adk.kt.testing.modelMessage
 import com.google.adk.kt.testing.modelParallelFunctionCallsResponse
@@ -40,8 +40,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -153,11 +151,10 @@ class RunnerTest {
   fun runAsync_withCustomPluginManager_passesToContext() = runTest {
     var capturedPluginManager: PluginManager? = null
     val spyAgent =
-      object : BaseAgent(name = "spy-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow {
-          capturedPluginManager = context.pluginManager
-        }
-      }
+      DummyAgent(
+        name = "spy-agent",
+        onRunAsync = { ctx -> capturedPluginManager = ctx.pluginManager },
+      )
 
     val customPluginManager = PluginManager()
     val runner = InMemoryRunner(agent = spyAgent, pluginManager = customPluginManager)
@@ -171,10 +168,7 @@ class RunnerTest {
 
   @Test
   fun runAsync_withOnUserMessageCallback_modifiesMessage() = runTest {
-    val spyAgent =
-      object : BaseAgent(name = "spy-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = emptyFlow()
-      }
+    val spyAgent = DummyAgent(name = "spy-agent")
 
     val plugin =
       object : Plugin {
@@ -204,12 +198,7 @@ class RunnerTest {
   @Test
   fun runAsync_withBeforeRunShortCircuit_shortCircuits() = runTest {
     var agentRan = false
-    val spyAgent =
-      object : BaseAgent(name = "spy-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow {
-          agentRan = true
-        }
-      }
+    val spyAgent = DummyAgent(name = "spy-agent", onRunAsync = { agentRan = true })
 
     val plugin =
       object : Plugin {
@@ -237,17 +226,18 @@ class RunnerTest {
   @Test
   fun runAsync_withOnEventCallback_modifiesEvent() = runTest {
     val spyAgent =
-      object : BaseAgent(name = "spy-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow {
+      DummyAgent(
+        name = "spy-agent",
+        onRunAsync = { ctx ->
           emit(
             Event(
-              invocationId = context.invocationId,
+              invocationId = ctx.invocationId,
               author = Role.MODEL,
               content = modelMessage("Original model response"),
             )
           )
-        }
-      }
+        },
+      )
 
     val plugin =
       object : Plugin {
@@ -277,17 +267,18 @@ class RunnerTest {
   fun runAsync_withAfterRunCallback_executes() = runTest {
     var afterRunCalled = false
     val spyAgent =
-      object : BaseAgent(name = "spy-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow {
+      DummyAgent(
+        name = "spy-agent",
+        onRunAsync = { ctx ->
           emit(
             Event(
-              invocationId = context.invocationId,
+              invocationId = ctx.invocationId,
               author = Role.MODEL,
               content = modelMessage("Done"),
             )
           )
-        }
-      }
+        },
+      )
 
     val plugin =
       object : Plugin {
@@ -370,11 +361,10 @@ class RunnerTest {
   @Test
   fun run_withValidMessage_executesAndReturnsEvents() = runTest {
     val spyAgent =
-      object : BaseAgent(name = "spy-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow {
-          emit(Event(author = Role.MODEL, content = modelMessage("OK")))
-        }
-      }
+      DummyAgent(
+        name = "spy-agent",
+        onRunAsync = { emit(Event(author = Role.MODEL, content = modelMessage("OK"))) },
+      )
     val runner = InMemoryRunner(agent = spyAgent)
     val userMessage = userMessage("hi")
 
@@ -387,10 +377,7 @@ class RunnerTest {
 
   @Test
   fun runAsync_withNullMessageAndNotResumable_throwsException() = runTest {
-    val spyAgent =
-      object : BaseAgent(name = "spy-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = emptyFlow()
-      }
+    val spyAgent = DummyAgent(name = "spy-agent")
     val runner = InMemoryRunner(agent = spyAgent)
 
     try {

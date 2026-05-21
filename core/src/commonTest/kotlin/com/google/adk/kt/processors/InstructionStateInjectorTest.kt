@@ -15,23 +15,20 @@
  */
 package com.google.adk.kt.processors
 
-import com.google.adk.kt.agents.BaseAgent
 import com.google.adk.kt.agents.CallbackContext
 import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.toCallbackContext
 import com.google.adk.kt.artifacts.ArtifactService
-import com.google.adk.kt.events.Event
 import com.google.adk.kt.serialization.Json
 import com.google.adk.kt.sessions.Session
 import com.google.adk.kt.sessions.SessionKey
 import com.google.adk.kt.sessions.State
+import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.types.Part
 import com.google.common.truth.Truth.assertThat
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.mockito.kotlin.any
@@ -45,14 +42,10 @@ class InstructionStateInjectorTest {
     artifactService: ArtifactService? = null,
   ): CallbackContext {
     val fakeSession = session ?: testSession()
-    val fakeAgent =
-      object : BaseAgent(name = "fake-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = emptyFlow()
-      }
     return InvocationContext(
         session = fakeSession,
         runConfig = null,
-        agent = fakeAgent,
+        agent = DummyAgent(name = "fake-agent"),
         artifactService = artifactService,
       )
       .toCallbackContext()

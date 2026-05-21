@@ -18,9 +18,8 @@ package com.google.adk.kt.tools
 
 import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.models.LlmResponse
-import com.google.adk.kt.models.Model
 import com.google.adk.kt.testing.DummyAgent
+import com.google.adk.kt.testing.DummyModel
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.types.GenerateContentConfig
 import com.google.adk.kt.types.GoogleSearch
@@ -30,8 +29,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 
 class GoogleSearchToolTest {
@@ -40,16 +37,10 @@ class GoogleSearchToolTest {
       InvocationContext(
         session = testSession(),
         runConfig = null,
-        agent = DummyAgent("test-agent"),
+        agent = DummyAgent(),
         artifactService = null,
       )
     return ToolContext(invocationContext = invocationContext)
-  }
-
-  // Helper to create mock model
-  private class MockModel(override val name: String) : Model {
-    override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-      emptyFlow()
   }
 
   @Test
@@ -62,7 +53,7 @@ class GoogleSearchToolTest {
   fun processLlmRequest_gemini2_addsGoogleSearch() = runTest {
     val tool = GoogleSearchTool()
     val context = getTestToolContext()
-    var request = LlmRequest(model = MockModel("gemini-2.0-flash"))
+    var request = LlmRequest(model = DummyModel("gemini-2.0-flash"))
 
     request = tool.processLlmRequest(context, request)
 
@@ -76,7 +67,7 @@ class GoogleSearchToolTest {
   fun processLlmRequest_unsupportedModel_throwsException() = runTest {
     val tool = GoogleSearchTool()
     val context = getTestToolContext()
-    val request = LlmRequest(model = MockModel("gpt-4"))
+    val request = LlmRequest(model = DummyModel("gpt-4"))
 
     assertFailsWith<IllegalArgumentException> { tool.processLlmRequest(context, request) }
   }
@@ -85,7 +76,7 @@ class GoogleSearchToolTest {
   fun processLlmRequest_overrideModel_usesOverride() = runTest {
     val tool = GoogleSearchTool(model = "gemini-2.0-flash")
     val context = getTestToolContext()
-    var request = LlmRequest(model = MockModel("gemini-2.0-pro"))
+    var request = LlmRequest(model = DummyModel("gemini-2.0-pro"))
 
     request = tool.processLlmRequest(context, request)
 
@@ -111,7 +102,7 @@ class GoogleSearchToolTest {
     val existingTool = Tool(googleSearch = GoogleSearch())
     var request =
       LlmRequest(
-        model = MockModel("gemini-2.0-flash"),
+        model = DummyModel("gemini-2.0-flash"),
         config = GenerateContentConfig(tools = listOf(existingTool)),
       )
 

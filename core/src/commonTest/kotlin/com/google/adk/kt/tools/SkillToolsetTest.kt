@@ -25,6 +25,7 @@ import com.google.adk.kt.sessions.State
 import com.google.adk.kt.skills.Frontmatter
 import com.google.adk.kt.skills.SkillSource
 import com.google.adk.kt.skills.SkillSourceException
+import com.google.adk.kt.testing.DummyAgent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -451,11 +452,7 @@ class SkillToolsetTest {
               events = mutableListOf(),
             ),
           runConfig = RunConfig(),
-          agent =
-            object : com.google.adk.kt.agents.BaseAgent(name = "test-agent") {
-              override fun runAsyncImpl(context: InvocationContext) =
-                kotlinx.coroutines.flow.emptyFlow<com.google.adk.kt.events.Event>()
-            },
+          agent = DummyAgent(),
           invocationId = "test-invocation-id",
         )
     )

@@ -40,7 +40,7 @@ class ContentsProcessorTest {
 
   @Test
   fun run_withContent_addsContentToRequest() = runTest {
-    val agent = DummyAgent(name = "test")
+    val agent = DummyAgent()
     val session = testSession()
     val context = InvocationContext(session = session, runConfig = null, agent = agent)
 

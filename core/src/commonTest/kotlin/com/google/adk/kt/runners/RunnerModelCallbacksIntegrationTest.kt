@@ -22,7 +22,6 @@ import com.google.adk.kt.callbacks.CallbackChoice
 import com.google.adk.kt.callbacks.OnModelErrorCallback
 import com.google.adk.kt.models.LlmRequest
 import com.google.adk.kt.models.LlmResponse
-import com.google.adk.kt.models.Model
 import com.google.adk.kt.testing.DummyModel
 import com.google.adk.kt.testing.modelMessage
 import com.google.adk.kt.testing.userMessage
@@ -30,7 +29,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -86,14 +84,11 @@ class RunnerModelCallbacksIntegrationTest {
   fun runAsync_beforeModelCallbackReturnsContinueWithMutatedRequest_modelSeesMutation() = runTest {
     var capturedRequest: LlmRequest? = null
     val capturingModel =
-      object : Model {
-        override val name = "capturing-model"
-
-        override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-          flow {
-            capturedRequest = request
-            emit(LlmResponse(content = modelMessage("ok")))
-          }
+      DummyModel("capturing-model") { request ->
+        flow {
+          capturedRequest = request
+          emit(LlmResponse(content = modelMessage("ok")))
+        }
       }
     val injected = userMessage("INJECTED")
     val agent =
@@ -155,15 +150,7 @@ class RunnerModelCallbacksIntegrationTest {
     val agent =
       LlmAgent(
         name = "test-agent",
-        model =
-          object : Model {
-            override val name = "failing-model"
-
-            override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-              flow {
-                throw RuntimeException("model boom")
-              }
-          },
+        model = DummyModel("failing-model") { flow { throw RuntimeException("model boom") } },
         onModelErrorCallbacks =
           listOf(
             OnModelErrorCallback { _, _, _ ->
@@ -189,15 +176,7 @@ class RunnerModelCallbacksIntegrationTest {
     val agent =
       LlmAgent(
         name = "test-agent",
-        model =
-          object : Model {
-            override val name = "failing-model"
-
-            override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> =
-              flow {
-                throw RuntimeException("model boom")
-              }
-          },
+        model = DummyModel("failing-model") { flow { throw RuntimeException("model boom") } },
       )
     val runner = InMemoryRunner(agent = agent)
 

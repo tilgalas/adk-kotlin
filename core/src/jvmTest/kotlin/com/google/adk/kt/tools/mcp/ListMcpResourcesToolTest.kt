@@ -16,17 +16,14 @@
 
 package com.google.adk.kt.tools.mcp
 
-import com.google.adk.kt.agents.BaseAgent
 import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.events.Event
+import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.tools.ToolContext
 import com.google.common.truth.Truth.assertThat
 import io.modelcontextprotocol.client.McpAsyncClient
 import io.modelcontextprotocol.spec.McpSchema
 import kotlin.test.Test
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.test.runTest
 import org.mockito.kotlin.doReturn
@@ -37,12 +34,8 @@ class ListMcpResourcesToolTest {
 
   private fun createToolContext(): ToolContext {
     val session = testSession()
-    val testAgent =
-      object : BaseAgent(name = "test-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = emptyFlow()
-      }
     val invocationContext =
-      InvocationContext(session = session, runConfig = null, agent = testAgent)
+      InvocationContext(session = session, runConfig = null, agent = DummyAgent())
     return ToolContext(invocationContext = invocationContext)
   }
 

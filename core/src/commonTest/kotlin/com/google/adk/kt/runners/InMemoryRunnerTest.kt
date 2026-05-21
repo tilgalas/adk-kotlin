@@ -17,9 +17,7 @@
 
 package com.google.adk.kt.runners
 
-import com.google.adk.kt.agents.BaseAgent
 import com.google.adk.kt.agents.Instruction
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.LlmAgent
 import com.google.adk.kt.agents.ResumabilityConfig
 import com.google.adk.kt.agents.RunConfig
@@ -40,8 +38,6 @@ import com.google.adk.kt.types.FunctionResponse
 import com.google.adk.kt.types.Part
 import com.google.adk.kt.types.Role
 import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -251,15 +247,15 @@ class InMemoryRunnerTest {
 
   @Test
   fun runAsync_withResumability_restoresAgentState() = runTest {
-    val testAgent =
-      object : BaseAgent(name = "test-agent") {
-        override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow {
-          val state = context.agentStates[name]
-          emit(
-            Event(author = name, content = Content(parts = listOf(Part(text = "State is $state"))))
-          )
-        }
-      }
+    val testAgent = DummyAgent { context ->
+      val state = context.agentStates["test-agent"]
+      emit(
+        Event(
+          author = "test-agent",
+          content = Content(parts = listOf(Part(text = "State is $state"))),
+        )
+      )
+    }
 
     val runner =
       InMemoryRunner(agent = testAgent, resumabilityConfig = ResumabilityConfig(isResumable = true))

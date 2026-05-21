@@ -22,6 +22,7 @@ import com.google.adk.kt.callbacks.AfterAgentCallback
 import com.google.adk.kt.callbacks.BeforeAgentCallback
 import com.google.adk.kt.events.Event
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 
 /**
@@ -30,25 +31,33 @@ import kotlinx.coroutines.flow.flow
  * This fixture assists developers in validating hierarchical agent designs and callback routing
  * logic without relying on deeply wired production agents.
  *
- * @param name The agent's identifier (defaults to "test").
+ * @param name The agent's identifier (defaults to "test-agent").
  * @param subAgents The sub-agents managed by this agent (default is empty).
  * @param beforeAgentCallbacks Callbacks executed prior to this agent's run.
  * @param afterAgentCallbacks Callbacks executed after this agent's run.
+ * @param description The agent's description (default is empty).
+ * @param disallowTransferToParent Forwarded to [BaseAgent.disallowTransferToParent].
+ * @param disallowTransferToPeers Forwarded to [BaseAgent.disallowTransferToPeers].
  * @param onRunAsync Configures the lambda to simulate execution within [runAsyncImpl].
  */
 class DummyAgent(
-  name: String = "test",
+  name: String = "test-agent",
   subAgents: List<BaseAgent> = emptyList(),
   beforeAgentCallbacks: List<BeforeAgentCallback> = emptyList(),
   afterAgentCallbacks: List<AfterAgentCallback> = emptyList(),
-  val onRunAsync: suspend kotlinx.coroutines.flow.FlowCollector<Event>.(InvocationContext) -> Unit =
-    {},
+  description: String = "",
+  disallowTransferToParent: Boolean = false,
+  disallowTransferToPeers: Boolean = false,
+  val onRunAsync: suspend FlowCollector<Event>.(InvocationContext) -> Unit = {},
 ) :
   BaseAgent(
     name = name,
+    description = description,
     subAgents = subAgents,
     beforeAgentCallbacks = beforeAgentCallbacks,
     afterAgentCallbacks = afterAgentCallbacks,
+    disallowTransferToParent = disallowTransferToParent,
+    disallowTransferToPeers = disallowTransferToPeers,
   ) {
   override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow { onRunAsync(context) }
 }

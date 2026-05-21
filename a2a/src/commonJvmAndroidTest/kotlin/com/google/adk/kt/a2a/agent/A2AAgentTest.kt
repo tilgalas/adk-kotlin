@@ -16,7 +16,6 @@
 
 package com.google.adk.kt.a2a.agent
 
-import com.google.adk.kt.agents.BaseAgent
 import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.callbacks.AfterAgentCallback
 import com.google.adk.kt.callbacks.BeforeAgentCallback
@@ -25,6 +24,7 @@ import com.google.adk.kt.events.Event
 import com.google.adk.kt.events.EventActions
 import com.google.adk.kt.sessions.Session
 import com.google.adk.kt.sessions.SessionKey
+import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.modelMessage
 import com.google.adk.kt.testing.userMessage
 import com.google.adk.kt.types.Content
@@ -53,7 +53,6 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -97,7 +96,7 @@ class A2AAgentTest {
     whenever(mockClient.agentCard).thenReturn(agentCard)
     whenever(mockClient.cancelTask(any())).thenReturn(null)
 
-    val mockAgent = FakeAgent("test-agent")
+    val mockAgent = DummyAgent()
 
     val session =
       Session(
@@ -752,8 +751,4 @@ class A2AAgentTest {
         .build()
     return TaskUpdateEvent(task, updateEvent)
   }
-}
-
-private class FakeAgent(name: String) : BaseAgent(name = name) {
-  override fun runAsyncImpl(context: InvocationContext) = emptyFlow<Event>()
 }

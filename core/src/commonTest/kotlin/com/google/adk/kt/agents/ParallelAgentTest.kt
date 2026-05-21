@@ -69,7 +69,7 @@ class ParallelAgentTest {
   @Test
   fun runAsync_subAgentPauses_doesNotEndParallelAgent() = runTest {
     val pauseEvent = Event(author = "sub1", longRunningToolIds = setOf("tool1"))
-    val subAgent = ContextAwareDummyAgent("sub1", onRunAsyncBlock = { ctx -> emit(pauseEvent) })
+    val subAgent = DummyAgent("sub1", onRunAsync = { _ -> emit(pauseEvent) })
     val parallelAgent = ParallelAgent(name = "parallel", subAgents = listOf(subAgent))
     val context = createTestContext(parallelAgent)
 
@@ -82,9 +82,9 @@ class ParallelAgentTest {
   fun runAsync_allSubAgentsEnd_endsParallelAgent() = runTest {
     val event = Event(author = "sub1", content = userMessage("Hello"))
     val subAgent =
-      ContextAwareDummyAgent(
+      DummyAgent(
         "sub1",
-        onRunAsyncBlock = { ctx ->
+        onRunAsync = { ctx ->
           emit(event)
           ctx.endOfAgents["sub1"] = true
         },
@@ -105,15 +105,6 @@ class ParallelAgentTest {
     val events = parallelAgent.runAsync(context).toList()
 
     assertTrue(events.isEmpty(), "Expected no events to be emitted")
-  }
-
-  private class ContextAwareDummyAgent(
-    name: String,
-    val onRunAsyncBlock:
-      suspend kotlinx.coroutines.flow.FlowCollector<Event>.(InvocationContext) -> Unit,
-  ) : BaseAgent(name = name) {
-    override fun runAsyncImpl(context: InvocationContext): kotlinx.coroutines.flow.Flow<Event> =
-      kotlinx.coroutines.flow.flow { onRunAsyncBlock(context) }
   }
 
   private fun createTestContext(agent: BaseAgent): InvocationContext {

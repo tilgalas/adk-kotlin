@@ -22,6 +22,7 @@ import com.google.adk.kt.annotations.ExperimentalResumabilityFeature
 import com.google.adk.kt.events.Event
 import com.google.adk.kt.events.EventActions
 import com.google.adk.kt.ids.Uuid
+import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.types.Content
 import com.google.adk.kt.types.FunctionCall
@@ -29,8 +30,6 @@ import com.google.adk.kt.types.Part
 import com.google.adk.kt.types.Role
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 
@@ -54,15 +53,6 @@ class LoopAgentTest {
     )
   }
 
-  private open class DummyAgent(
-    name: String,
-    val onRunAsync: suspend () -> Event = {
-      Event(id = Uuid.random(), invocationId = "test", author = name)
-    },
-  ) : BaseAgent(name = name) {
-    override fun runAsyncImpl(context: InvocationContext): Flow<Event> = flow { emit(onRunAsync()) }
-  }
-
   @Test
   fun testLoopMaxIterations() = runTest {
     var count = 0
@@ -71,7 +61,7 @@ class LoopAgentTest {
         "agent1",
         onRunAsync = {
           count++
-          createEvent("agent1", "msg1")
+          emit(createEvent("agent1", "msg1"))
         },
       )
 
@@ -91,7 +81,7 @@ class LoopAgentTest {
         "agent1",
         onRunAsync = {
           count++
-          createEvent("agent1", "msg1", escalate = count == 2)
+          emit(createEvent("agent1", "msg1", escalate = count == 2))
         },
       )
 
@@ -111,7 +101,7 @@ class LoopAgentTest {
         "agent1",
         onRunAsync = {
           eventList.add("agent1")
-          createEvent("agent1", "msg1")
+          emit(createEvent("agent1", "msg1"))
         },
       )
     val agent2 =
@@ -119,7 +109,7 @@ class LoopAgentTest {
         "agent2",
         onRunAsync = {
           eventList.add("agent2")
-          createEvent("agent2", "msg2")
+          emit(createEvent("agent2", "msg2"))
         },
       )
 
@@ -137,7 +127,7 @@ class LoopAgentTest {
         "agent1",
         onRunAsync = {
           eventList.add("agent1")
-          createEvent("agent1", "msg1")
+          emit(createEvent("agent1", "msg1"))
         },
       )
     // Pause event must include a function call whose id matches an entry in longRunningToolIds;
@@ -163,7 +153,7 @@ class LoopAgentTest {
         "agent2",
         onRunAsync = {
           eventList.add("agent2")
-          pauseEvent
+          emit(pauseEvent)
         },
       )
 
@@ -182,7 +172,7 @@ class LoopAgentTest {
         "agent1",
         onRunAsync = {
           eventList.add("agent1")
-          createEvent("agent1", "msg1")
+          emit(createEvent("agent1", "msg1"))
         },
       )
     val agent2 =
@@ -190,7 +180,7 @@ class LoopAgentTest {
         "agent2",
         onRunAsync = {
           eventList.add("agent2")
-          createEvent("agent2", "msg2")
+          emit(createEvent("agent2", "msg2"))
         },
       )
 
@@ -219,7 +209,7 @@ class LoopAgentTest {
         "agent1",
         onRunAsync = {
           count++
-          createEvent("agent1", "msg1")
+          emit(createEvent("agent1", "msg1"))
         },
       )
 
