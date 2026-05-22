@@ -16,10 +16,7 @@
 
 package com.google.adk.kt.tools.mcp
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.testing.DummyAgent
-import com.google.adk.kt.testing.testSession
-import com.google.adk.kt.tools.ToolContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.common.truth.Truth.assertThat
 import io.modelcontextprotocol.client.McpAsyncClient
 import io.modelcontextprotocol.spec.McpSchema
@@ -31,13 +28,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 class ListMcpResourceTemplatesToolTest {
-
-  private fun createToolContext(): ToolContext {
-    val session = testSession()
-    val invocationContext =
-      InvocationContext(session = session, runConfig = null, agent = DummyAgent())
-    return ToolContext(invocationContext = invocationContext)
-  }
 
   @Test
   fun run_withNoCursor_returnsTemplates() = runTest {
@@ -57,7 +47,7 @@ class ListMcpResourceTemplatesToolTest {
     val listTemplatesResult = McpSchema.ListResourceTemplatesResult(templateList, "cursor123")
     whenever(mockMcpSession.listResourceTemplates()) doReturn mono { listTemplatesResult }
 
-    val context = createToolContext()
+    val context = testToolContext()
 
     val result = tool.run(context, emptyMap())
 
@@ -90,7 +80,7 @@ class ListMcpResourceTemplatesToolTest {
     val listTemplatesResult = McpSchema.ListResourceTemplatesResult(templateList, null)
     whenever(mockMcpSession.listResourceTemplates("myCursor")) doReturn mono { listTemplatesResult }
 
-    val context = createToolContext()
+    val context = testToolContext()
 
     val result = tool.run(context, mapOf("cursor" to "myCursor"))
 
@@ -111,7 +101,7 @@ class ListMcpResourceTemplatesToolTest {
     whenever(mockMcpSession.listResourceTemplates("my-cursor")) doReturn
       mono { listTemplatesResult }
 
-    val context = createToolContext()
+    val context = testToolContext()
 
     val result = tool.run(context, mapOf("cursor" to "my-cursor"))
 
@@ -131,7 +121,7 @@ class ListMcpResourceTemplatesToolTest {
     whenever(mockMcpSession.listResourceTemplates()) doReturn
       mono { throw RuntimeException("Server error") }
 
-    val context = createToolContext()
+    val context = testToolContext()
 
     val ex =
       kotlin.test.assertFailsWith<McpToolException.McpToolExecutionException> {

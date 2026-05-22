@@ -16,7 +16,6 @@
 
 package com.google.adk.kt.plugins
 
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.toCallbackContext
 import com.google.adk.kt.callbacks.CallbackChoice
 import com.google.adk.kt.events.Event
@@ -27,7 +26,7 @@ import com.google.adk.kt.plugins.LoggingPlugin.Companion.MAX_ARGS_LENGTH
 import com.google.adk.kt.plugins.LoggingPlugin.Companion.MAX_CONTENT_LENGTH
 import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyTool
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.tools.ToolContext
 import com.google.adk.kt.types.Content
 import com.google.adk.kt.types.Part
@@ -43,9 +42,7 @@ class LoggingPluginTest {
 
   private val mockTool = DummyTool("test_tool", "Test tool")
 
-  private val session = testSession()
-  private val invocationContext =
-    InvocationContext(session = session, runConfig = null, agent = mockAgent)
+  private val invocationContext = testInvocationContext(agent = mockAgent)
   private val callbackContext = invocationContext.toCallbackContext()
   private val toolContext = ToolContext(invocationContext)
 

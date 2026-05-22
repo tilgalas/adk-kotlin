@@ -16,9 +16,7 @@
 
 package com.google.adk.kt.tools.mcp
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.testing.testSession
-import com.google.adk.kt.tools.ToolContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.tools.mcp.McpSchemaConverter.toAdkFunctionDeclaration
 import com.google.adk.kt.types.Type
 import io.modelcontextprotocol.client.McpAsyncClient
@@ -47,9 +45,7 @@ class McpToolTest {
       mockMcpSession,
       McpSessionManager(McpConnectionParameters.Sse(url = "http://localhost:1234")),
     )
-  private val invocationContext =
-    InvocationContext(session = testSession(), runConfig = null, agent = mock())
-  private val toolContext = ToolContext(invocationContext)
+  private val toolContext = testToolContext()
 
   @Test
   fun annotations_returnsAnnotations() {

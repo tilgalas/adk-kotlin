@@ -16,22 +16,17 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.LlmAgent
-import com.google.adk.kt.agents.RunConfig
-import com.google.adk.kt.collections.concurrentMutableMapOf
 import com.google.adk.kt.events.Event
 import com.google.adk.kt.events.EventActions
 import com.google.adk.kt.models.LlmResponse
 import com.google.adk.kt.runners.InMemoryRunner
-import com.google.adk.kt.sessions.InMemorySessionService
-import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.sessions.SessionKey
-import com.google.adk.kt.sessions.State
 import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyModel
 import com.google.adk.kt.testing.modelFunctionCallResponse
 import com.google.adk.kt.testing.modelMessage
+import com.google.adk.kt.testing.testInvocationContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.testing.userMessage
 import com.google.adk.kt.types.Schema
 import com.google.adk.kt.types.Type
@@ -86,7 +81,7 @@ class AgentToolTest {
     val model = DummyModel("test") { flowOf(LlmResponse(content = responseContent)) }
     val agent = LlmAgent(name = "inner-agent", model = model)
     val tool = AgentTool(agent)
-    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+    val context = testToolContext(testInvocationContext(agent = agent))
 
     val result = tool.run(context, mapOf("request" to "Hello"))
 
@@ -109,7 +104,7 @@ class AgentToolTest {
         },
       )
     val tool = AgentTool(agent)
-    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+    val context = testToolContext(testInvocationContext(agent = agent))
 
     val result = tool.run(context, mapOf("request" to "Hello"))
 
@@ -124,7 +119,7 @@ class AgentToolTest {
     val model = DummyModel("test") { flowOf(LlmResponse(content = responseContent)) }
     val agent = LlmAgent(name = "inner-agent", model = model)
     val tool = AgentTool(agent, skipSummarization = true)
-    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+    val context = testToolContext(testInvocationContext(agent = agent))
 
     val unused = tool.run(context, mapOf("request" to "Hello"))
 
@@ -186,7 +181,9 @@ class AgentToolTest {
         LlmAgent(
           name = "inner-agent",
           model =
-            DummyModel("inner-model") { flowOf(LlmResponse(content = modelMessage("Response from inner agent"))) },
+            DummyModel("inner-model") {
+              flowOf(LlmResponse(content = modelMessage("Response from inner agent")))
+            },
         )
       )
     val mainModel =
@@ -241,7 +238,7 @@ class AgentToolTest {
     val model = DummyModel("test") { flowOf(LlmResponse(content = responseContent)) }
     val agent = LlmAgent(name = "inner-agent", model = model, inputSchema = inputSchema)
     val tool = AgentTool(agent)
-    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+    val context = testToolContext(testInvocationContext(agent = agent))
 
     val result = tool.run(context, mapOf("name" to "John", "age" to 30L))
 
@@ -259,7 +256,7 @@ class AgentToolTest {
     val agent =
       LlmAgent(name = "inner-agent", model = DummyModel("test"), inputSchema = inputSchema)
     val tool = AgentTool(agent)
-    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+    val context = testToolContext(testInvocationContext(agent = agent))
 
     assertFailsWith<IllegalArgumentException> { tool.run(context, mapOf("age" to "not-a-number")) }
   }
@@ -275,7 +272,7 @@ class AgentToolTest {
     val agent =
       LlmAgent(name = "inner-agent", model = DummyModel("test"), inputSchema = inputSchema)
     val tool = AgentTool(agent)
-    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+    val context = testToolContext(testInvocationContext(agent = agent))
 
     assertFailsWith<IllegalArgumentException> { tool.run(context, emptyMap()) }
   }
@@ -287,24 +284,10 @@ class AgentToolTest {
     val agent =
       LlmAgent(name = "inner-agent", model = DummyModel("test"), inputSchema = inputSchema)
     val tool = AgentTool(agent)
-    val context = ToolContext(invocationContext = getTestInvocationContext(agent))
+    val context = testToolContext(testInvocationContext(agent = agent))
 
     assertFailsWith<IllegalArgumentException> {
       tool.run(context, mapOf("name" to "John", "unexpected" to "value"))
     }
   }
-
-  private fun getTestInvocationContext(agent: com.google.adk.kt.agents.BaseAgent) =
-    InvocationContext(
-      session =
-        Session(
-          key = SessionKey(appName = "app-name", userId = "user-id", id = "session-id"),
-          state = State(concurrentMutableMapOf()),
-          events = mutableListOf(),
-        ),
-      runConfig = RunConfig(),
-      agent = agent,
-      sessionService = InMemorySessionService(),
-      invocationId = "test-invocation-id",
-    )
 }

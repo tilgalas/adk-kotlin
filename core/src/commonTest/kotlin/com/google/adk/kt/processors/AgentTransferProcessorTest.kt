@@ -16,11 +16,10 @@
 
 package com.google.adk.kt.processors
 
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.LlmAgent
 import com.google.adk.kt.models.LlmRequest
 import com.google.adk.kt.testing.DummyModel
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
@@ -36,9 +35,7 @@ class AgentTransferProcessorTest {
     val processedRequest =
       AgentTransferProcessor()
         .process(
-          InvocationContext(
-            session = testSession(),
-            runConfig = null,
+          testInvocationContext(
             agent =
               LlmAgent(
                 name = "root",
@@ -48,7 +45,7 @@ class AgentTransferProcessorTest {
                   listOf(
                     LlmAgent(name = "sub", description = "Sub agent", model = DummyModel("sub"))
                   ),
-              ),
+              )
           ),
           LlmRequest(),
         )
@@ -99,11 +96,7 @@ class AgentTransferProcessorTest {
       )
 
     val processedRequest =
-      AgentTransferProcessor()
-        .process(
-          InvocationContext(session = testSession(), runConfig = null, agent = subAgent),
-          LlmRequest(),
-        )
+      AgentTransferProcessor().process(testInvocationContext(agent = subAgent), LlmRequest())
 
     val instructionText =
       processedRequest.config.systemInstruction
@@ -142,11 +135,7 @@ class AgentTransferProcessorTest {
   fun processRequest_noTargets_returnsUnmodifiedRequest() = runTest {
     val agent = LlmAgent(name = "alone", description = "Standalone", model = DummyModel("alone"))
     val processedRequest =
-      AgentTransferProcessor()
-        .process(
-          InvocationContext(session = testSession(), runConfig = null, agent = agent),
-          LlmRequest(),
-        )
+      AgentTransferProcessor().process(testInvocationContext(agent = agent), LlmRequest())
 
     assertNull(processedRequest.config.systemInstruction)
     assertTrue(processedRequest.config.tools.isNullOrEmpty())
@@ -175,11 +164,7 @@ class AgentTransferProcessorTest {
       )
 
     val processedRequest =
-      AgentTransferProcessor()
-        .process(
-          InvocationContext(session = testSession(), runConfig = null, agent = subAgent),
-          LlmRequest(),
-        )
+      AgentTransferProcessor().process(testInvocationContext(agent = subAgent), LlmRequest())
     assertNull(processedRequest.config.systemInstruction)
     assertTrue(processedRequest.config.tools.isNullOrEmpty())
   }
@@ -204,11 +189,7 @@ class AgentTransferProcessorTest {
       )
 
     val processedRequest =
-      AgentTransferProcessor()
-        .process(
-          InvocationContext(session = testSession(), runConfig = null, agent = subAgent),
-          LlmRequest(),
-        )
+      AgentTransferProcessor().process(testInvocationContext(agent = subAgent), LlmRequest())
 
     val instructionText =
       processedRequest.config.systemInstruction
@@ -258,11 +239,7 @@ class AgentTransferProcessorTest {
       )
 
     val processedRequest =
-      AgentTransferProcessor()
-        .process(
-          InvocationContext(session = testSession(), runConfig = null, agent = subAgent),
-          LlmRequest(),
-        )
+      AgentTransferProcessor().process(testInvocationContext(agent = subAgent), LlmRequest())
 
     val instructionText =
       processedRequest.config.systemInstruction
@@ -315,11 +292,7 @@ class AgentTransferProcessorTest {
 
     val exception =
       assertFailsWith<IllegalArgumentException> {
-        AgentTransferProcessor()
-          .process(
-            InvocationContext(session = testSession(), runConfig = null, agent = subAgentMain),
-            LlmRequest(),
-          )
+        AgentTransferProcessor().process(testInvocationContext(agent = subAgentMain), LlmRequest())
       }
 
     assertEquals(
@@ -341,11 +314,7 @@ class AgentTransferProcessorTest {
       )
 
     val processedRequest =
-      AgentTransferProcessor()
-        .process(
-          InvocationContext(session = testSession(), runConfig = null, agent = rootAgent),
-          LlmRequest(),
-        )
+      AgentTransferProcessor().process(testInvocationContext(agent = rootAgent), LlmRequest())
 
     val declaration =
       processedRequest.config.tools

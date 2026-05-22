@@ -16,11 +16,9 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyModel
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.types.GenerateContentConfig
 import com.google.adk.kt.types.GoogleSearch
 import com.google.adk.kt.types.Tool
@@ -32,16 +30,6 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 
 class GoogleSearchToolTest {
-  private fun getTestToolContext(): ToolContext {
-    val invocationContext =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
-        agent = DummyAgent(),
-        artifactService = null,
-      )
-    return ToolContext(invocationContext = invocationContext)
-  }
 
   @Test
   fun declaration_returnsNull() {
@@ -52,7 +40,7 @@ class GoogleSearchToolTest {
   @Test
   fun processLlmRequest_gemini2_addsGoogleSearch() = runTest {
     val tool = GoogleSearchTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     var request = LlmRequest(model = DummyModel("gemini-2.0-flash"))
 
     request = tool.processLlmRequest(context, request)
@@ -66,7 +54,7 @@ class GoogleSearchToolTest {
   @Test
   fun processLlmRequest_unsupportedModel_throwsException() = runTest {
     val tool = GoogleSearchTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest(model = DummyModel("gpt-4"))
 
     assertFailsWith<IllegalArgumentException> { tool.processLlmRequest(context, request) }
@@ -75,7 +63,7 @@ class GoogleSearchToolTest {
   @Test
   fun processLlmRequest_overrideModel_usesOverride() = runTest {
     val tool = GoogleSearchTool(model = "gemini-2.0-flash")
-    val context = getTestToolContext()
+    val context = testToolContext()
     var request = LlmRequest(model = DummyModel("gemini-2.0-pro"))
 
     request = tool.processLlmRequest(context, request)
@@ -89,7 +77,7 @@ class GoogleSearchToolTest {
   @Test
   fun processLlmRequest_noModel_throwsException() = runTest {
     val tool = GoogleSearchTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest()
 
     assertFailsWith<IllegalArgumentException> { tool.processLlmRequest(context, request) }
@@ -98,7 +86,7 @@ class GoogleSearchToolTest {
   @Test
   fun processLlmRequest_gemini2_withExistingGoogleSearch_doesNotAddTool() = runTest {
     val tool = GoogleSearchTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val existingTool = Tool(googleSearch = GoogleSearch())
     var request =
       LlmRequest(

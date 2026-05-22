@@ -20,7 +20,7 @@ import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.LlmAgent
 import com.google.adk.kt.testing.DummyModel
 import com.google.adk.kt.testing.DummyTracer
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.tools.FunctionTool
 import com.google.adk.kt.tools.ToolContext
 import com.google.adk.kt.types.FunctionCall
@@ -97,11 +97,7 @@ class ToolTelemetryTest {
   }
 
   private fun createInvocationContext(): InvocationContext =
-    InvocationContext(
-      session = testSession(),
-      runConfig = null,
-      agent = LlmAgent(name = "test_agent", model = DummyModel("mock_model")),
-    )
+    testInvocationContext(agent = LlmAgent(name = "test_agent", model = DummyModel("mock_model")))
 
   private class TestFunctionTool : FunctionTool("test_tool", "A test tool") {
     override fun declaration() = null

@@ -22,6 +22,7 @@ import com.google.adk.kt.annotations.ExperimentalResumabilityFeature
 import com.google.adk.kt.events.Event
 import com.google.adk.kt.ids.Uuid
 import com.google.adk.kt.testing.DummyAgent
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.testing.userMessage
 import kotlin.test.Test
@@ -32,8 +33,7 @@ import kotlinx.coroutines.test.runTest
 class SequentialAgentTest {
 
   private val session = testSession()
-  private val baseContext =
-    InvocationContext(session = session, runConfig = null, agent = DummyAgent("root"))
+  private val baseContext = testInvocationContext(session = session, agent = DummyAgent("root"))
 
   @Test
   fun testRunAsyncSequentialExecution() = runTest {
@@ -97,9 +97,8 @@ class SequentialAgentTest {
     val sequentialAgent = SequentialAgent(name = "seq", subAgents = listOf(agent1, agent2))
 
     val context =
-      InvocationContext(
+      testInvocationContext(
         session = session,
-        runConfig = null,
         agent = DummyAgent("root"),
         resumabilityConfig = ResumabilityConfig(isResumable = true),
       )
@@ -124,9 +123,8 @@ class SequentialAgentTest {
     val sequentialAgent = SequentialAgent(name = "seq", subAgents = listOf(agent1))
 
     val context =
-      InvocationContext(
+      testInvocationContext(
         session = session,
-        runConfig = null,
         agent = DummyAgent("root"),
         resumabilityConfig = ResumabilityConfig(isResumable = false),
       )

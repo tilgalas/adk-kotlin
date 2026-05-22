@@ -16,15 +16,8 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.agents.RunConfig
-import com.google.adk.kt.collections.concurrentMutableMapOf
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.sessions.InMemorySessionService
-import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.sessions.SessionKey
-import com.google.adk.kt.sessions.State
-import com.google.adk.kt.testing.DummyAgent
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.types.FunctionDeclaration
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -123,7 +116,7 @@ class BaseToolTest {
   @Test
   fun run_onDefaultTool_returnsDefaultResult() = runTest {
     val tool = DefaultTool()
-    val toolContext = ToolContext(invocationContext = getTestInvocationContext())
+    val toolContext = testToolContext()
     val args = emptyMap<String, Any>()
 
     val result = tool.run(toolContext, args)
@@ -134,7 +127,7 @@ class BaseToolTest {
   @Test
   fun run_onExtendedTool_returnsArguments() = runTest {
     val tool = ExtendedTool()
-    val toolContext = ToolContext(invocationContext = getTestInvocationContext())
+    val toolContext = testToolContext()
     val args = mapOf("arg1" to "value1", "arg2" to 42)
 
     val result = tool.run(toolContext, args)
@@ -152,7 +145,7 @@ class BaseToolTest {
   @Test
   fun run_onMinimalTool_throwsNotImplementedError() = runTest {
     val tool = MinimalTool()
-    val toolContext = ToolContext(invocationContext = getTestInvocationContext())
+    val toolContext = testToolContext()
 
     val exception = assertFailsWith<NotImplementedError> { tool.run(toolContext, emptyMap()) }
     assertEquals("Tool execution is not implemented for tool: minimal_tool", exception.message)
@@ -161,7 +154,7 @@ class BaseToolTest {
   @Test
   fun processLlmRequest_withDeclaration_addsTool() = runTest {
     val tool = ToolWithDeclaration()
-    val toolContext = ToolContext(invocationContext = getTestInvocationContext())
+    val toolContext = testToolContext()
     var llmRequest = LlmRequest()
 
     llmRequest = tool.processLlmRequest(toolContext, llmRequest)
@@ -173,18 +166,4 @@ class BaseToolTest {
     assertEquals(1, addedTool.functionDeclarations?.size)
     assertEquals("tool_with_decl", addedTool.functionDeclarations?.first()?.name)
   }
-
-  private fun getTestInvocationContext() =
-    InvocationContext(
-      session =
-        Session(
-          key = SessionKey(appName = "app-name", userId = "user-id", id = "session-id"),
-          state = State(concurrentMutableMapOf()),
-          events = mutableListOf(),
-        ),
-      runConfig = RunConfig(), // Add default RunConfig
-      agent = DummyAgent("test-agent"),
-      sessionService = InMemorySessionService(), // Add InMemorySessionService
-      invocationId = "test-invocation-id", // Add invocationId
-    )
 }

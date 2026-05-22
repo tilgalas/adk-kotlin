@@ -16,15 +16,10 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.artifacts.ArtifactService
-import com.google.adk.kt.collections.concurrentMutableMapOf
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.sessions.SessionKey
-import com.google.adk.kt.sessions.State
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyArtifactService
+import com.google.adk.kt.testing.testInvocationContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.testing.userMessage
 import com.google.adk.kt.types.Blob
 import com.google.adk.kt.types.Content
@@ -51,21 +46,6 @@ class LoadArtifactsToolTest {
       onLoadArtifact = { _, filename, _ -> loadToReturn[filename] },
     )
 
-  private fun getTestToolContext(artifactService: ArtifactService? = null): ToolContext {
-    val invocationContext =
-      InvocationContext(
-        session =
-          Session(
-            key = SessionKey(appName = "app-name", userId = "user-id", id = "session-id"),
-            state = State(concurrentMutableMapOf()),
-          ),
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
-        artifactService = artifactService,
-      )
-    return ToolContext(invocationContext = invocationContext)
-  }
-
   @Test
   fun declaration_returnsSchema() {
     val tool = LoadArtifactsTool()
@@ -88,7 +68,7 @@ class LoadArtifactsToolTest {
   @Test
   fun run_returnsExpectedMap() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val args = mapOf("artifact_names" to listOf("file1.txt", "file2.jpg"))
     val result = tool.run(context, args) as Map<*, *>
 
@@ -99,7 +79,10 @@ class LoadArtifactsToolTest {
   @Test
   fun processLlmRequest_emptyArtifacts_noOp() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext(mockArtifactService(keysToReturn = emptyList()))
+    val context =
+      testToolContext(
+        testInvocationContext(artifactService = mockArtifactService(keysToReturn = emptyList()))
+      )
     var request = LlmRequest()
 
     request = tool.processLlmRequest(context, request)
@@ -113,7 +96,12 @@ class LoadArtifactsToolTest {
   @Test
   fun processLlmRequest_appendsInstructions() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext(mockArtifactService(keysToReturn = listOf("file1.txt")))
+    val context =
+      testToolContext(
+        testInvocationContext(
+          artifactService = mockArtifactService(keysToReturn = listOf("file1.txt"))
+        )
+      )
     var request = LlmRequest()
 
     request = tool.processLlmRequest(context, request)
@@ -132,10 +120,13 @@ class LoadArtifactsToolTest {
     val tool = LoadArtifactsTool()
     val expectedPart = Part(text = "file 1 content")
     val context =
-      getTestToolContext(
-        mockArtifactService(
-          keysToReturn = listOf("file1.txt"),
-          loadToReturn = mapOf("file1.txt" to expectedPart),
+      testToolContext(
+        testInvocationContext(
+          artifactService =
+            mockArtifactService(
+              keysToReturn = listOf("file1.txt"),
+              loadToReturn = mapOf("file1.txt" to expectedPart),
+            )
         )
       )
 
@@ -180,7 +171,7 @@ class LoadArtifactsToolTest {
   @Test
   fun run_withoutArtifactNames_returnsEmptyList() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val args = emptyMap<String, Any>()
     val result = tool.run(context, args) as Map<*, *>
 
@@ -191,7 +182,12 @@ class LoadArtifactsToolTest {
   @Test
   fun processLlmRequest_artifactsInContext_withOtherFunctionCall_doesNotLoad() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext(mockArtifactService(keysToReturn = listOf("file1.txt")))
+    val context =
+      testToolContext(
+        testInvocationContext(
+          artifactService = mockArtifactService(keysToReturn = listOf("file1.txt"))
+        )
+      )
     var request = LlmRequest()
 
     request =
@@ -227,10 +223,13 @@ class LoadArtifactsToolTest {
     val tool = LoadArtifactsTool()
     val expectedPart = Part(text = "user file content")
     val context =
-      getTestToolContext(
-        mockArtifactService(
-          keysToReturn = listOf("user:file1.txt"),
-          loadToReturn = mapOf("user:file1.txt" to expectedPart),
+      testToolContext(
+        testInvocationContext(
+          artifactService =
+            mockArtifactService(
+              keysToReturn = listOf("user:file1.txt"),
+              loadToReturn = mapOf("user:file1.txt" to expectedPart),
+            )
         )
       )
     var request = LlmRequest()
@@ -283,10 +282,13 @@ class LoadArtifactsToolTest {
     val artifactName = "test.pdf"
     val artifactPart = Part(inlineData = Blob(mimeType = "application/pdf", data = pdfBytes))
     val context =
-      getTestToolContext(
-        mockArtifactService(
-          keysToReturn = listOf(artifactName),
-          loadToReturn = mapOf(artifactName to artifactPart),
+      testToolContext(
+        testInvocationContext(
+          artifactService =
+            mockArtifactService(
+              keysToReturn = listOf(artifactName),
+              loadToReturn = mapOf(artifactName to artifactPart),
+            )
         )
       )
     var request = LlmRequest()
@@ -337,7 +339,11 @@ class LoadArtifactsToolTest {
   fun processLlmRequest_appendsInstructions_multipleArtifacts() = runTest {
     val tool = LoadArtifactsTool()
     val context =
-      getTestToolContext(mockArtifactService(keysToReturn = listOf("file1.txt", "file2.png")))
+      testToolContext(
+        testInvocationContext(
+          artifactService = mockArtifactService(keysToReturn = listOf("file1.txt", "file2.png"))
+        )
+      )
     var request = LlmRequest()
 
     request = tool.processLlmRequest(context, request)
@@ -355,7 +361,12 @@ class LoadArtifactsToolTest {
   @Test
   fun processLlmRequest_noFunctionResponse_noOp() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext(mockArtifactService(keysToReturn = listOf("file1.txt")))
+    val context =
+      testToolContext(
+        testInvocationContext(
+          artifactService = mockArtifactService(keysToReturn = listOf("file1.txt"))
+        )
+      )
     var request = LlmRequest()
     request = request.appendContent(userMessage("some text"))
 
@@ -368,7 +379,12 @@ class LoadArtifactsToolTest {
   @Test
   fun processLlmRequest_emptyPartsInLastContent_noOp() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext(mockArtifactService(keysToReturn = listOf("file1.txt")))
+    val context =
+      testToolContext(
+        testInvocationContext(
+          artifactService = mockArtifactService(keysToReturn = listOf("file1.txt"))
+        )
+      )
     var request = LlmRequest()
     request = request.appendContent(Content(role = Role.USER, parts = emptyList()))
 
@@ -381,7 +397,12 @@ class LoadArtifactsToolTest {
   @Test
   fun processLlmRequest_notLoadArtifactsFunctionCall_noOp() = runTest {
     val tool = LoadArtifactsTool()
-    val context = getTestToolContext(mockArtifactService(keysToReturn = listOf("file1.txt")))
+    val context =
+      testToolContext(
+        testInvocationContext(
+          artifactService = mockArtifactService(keysToReturn = listOf("file1.txt"))
+        )
+      )
     var request = LlmRequest()
     request =
       request.appendContent(
@@ -407,8 +428,11 @@ class LoadArtifactsToolTest {
   fun processLlmRequest_nonExistentArtifact_doesNotLoad() = runTest {
     val tool = LoadArtifactsTool()
     val context =
-      getTestToolContext(
-        mockArtifactService(keysToReturn = listOf("file1.txt"), loadToReturn = emptyMap())
+      testToolContext(
+        testInvocationContext(
+          artifactService =
+            mockArtifactService(keysToReturn = listOf("file1.txt"), loadToReturn = emptyMap())
+        )
       )
 
     var request = LlmRequest()

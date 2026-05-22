@@ -16,14 +16,13 @@
 package com.google.adk.kt.processors
 
 import com.google.adk.kt.agents.CallbackContext
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.toCallbackContext
 import com.google.adk.kt.artifacts.ArtifactService
 import com.google.adk.kt.serialization.Json
 import com.google.adk.kt.sessions.Session
 import com.google.adk.kt.sessions.SessionKey
 import com.google.adk.kt.sessions.State
-import com.google.adk.kt.testing.DummyAgent
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.types.Part
 import com.google.common.truth.Truth.assertThat
@@ -40,16 +39,9 @@ class InstructionStateInjectorTest {
   private fun createFakeContext(
     session: Session? = null,
     artifactService: ArtifactService? = null,
-  ): CallbackContext {
-    val fakeSession = session ?: testSession()
-    return InvocationContext(
-        session = fakeSession,
-        runConfig = null,
-        agent = DummyAgent(name = "fake-agent"),
-        artifactService = artifactService,
-      )
+  ): CallbackContext =
+    testInvocationContext(session = session ?: testSession(), artifactService = artifactService)
       .toCallbackContext()
-  }
 
   @Test
   fun injectSessionState_nullTemplate_returnsEmptyString() = runTest {

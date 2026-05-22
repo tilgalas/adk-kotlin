@@ -16,15 +16,8 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.agents.RunConfig
-import com.google.adk.kt.collections.concurrentMutableMapOf
 import com.google.adk.kt.events.ToolConfirmation
-import com.google.adk.kt.sessions.InMemorySessionService
-import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.sessions.SessionKey
-import com.google.adk.kt.sessions.State
-import com.google.adk.kt.testing.DummyAgent
+import com.google.adk.kt.testing.testToolContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -88,7 +81,7 @@ class FunctionToolTest {
   @Test
   fun run_delegatesToExecute() = runTest {
     val tool = TestFunctionTool()
-    val toolContext = ToolContext(invocationContext = getTestInvocationContext())
+    val toolContext = testToolContext()
     val args = mapOf<String, Any>("arg1" to "value1")
 
     val result = tool.run(toolContext, args)
@@ -100,8 +93,7 @@ class FunctionToolTest {
   fun run_requiresConfirmation_noConfirmationYet_requestsItAndDoesNotInvokeExecute() = runTest {
     var executed = false
     val tool = confirmGatedTool(name = "secure", onExecute = { executed = true })
-    val toolContext =
-      ToolContext(invocationContext = getTestInvocationContext(), functionCallId = "fc1")
+    val toolContext = testToolContext(functionCallId = "fc1")
 
     val result = tool.run(toolContext, mapOf("amount" to 100))
 
@@ -124,11 +116,7 @@ class FunctionToolTest {
         result = mapOf("status" to "ok"),
       )
     val toolContext =
-      ToolContext(
-        invocationContext = getTestInvocationContext(),
-        functionCallId = "fc1",
-        toolConfirmation = ToolConfirmation(confirmed = true),
-      )
+      testToolContext(functionCallId = "fc1", toolConfirmation = ToolConfirmation(confirmed = true))
 
     val result = tool.run(toolContext, mapOf("amount" to 100))
 
@@ -143,8 +131,7 @@ class FunctionToolTest {
     var executed = false
     val tool = confirmGatedTool(name = "secure", onExecute = { executed = true })
     val toolContext =
-      ToolContext(
-        invocationContext = getTestInvocationContext(),
+      testToolContext(
         functionCallId = "fc1",
         toolConfirmation = ToolConfirmation(confirmed = false),
       )
@@ -168,8 +155,7 @@ class FunctionToolTest {
           return args
         }
       }
-    val toolContext =
-      ToolContext(invocationContext = getTestInvocationContext(), functionCallId = "fc1")
+    val toolContext = testToolContext(functionCallId = "fc1")
 
     val unused = tool.run(toolContext, emptyMap())
 
@@ -184,8 +170,7 @@ class FunctionToolTest {
     // execute().
     var executed = false
     val tool = predicateGatedTool(predicate = { true }, onExecute = { executed = true })
-    val toolContext =
-      ToolContext(invocationContext = getTestInvocationContext(), functionCallId = "fc1")
+    val toolContext = testToolContext(functionCallId = "fc1")
 
     val result = tool.run(toolContext, mapOf("amount" to 100))
 
@@ -201,8 +186,7 @@ class FunctionToolTest {
     var executedArgs: Map<String, Any>? = null
     val tool =
       predicateGatedTool(predicate = { false }, onExecute = { args -> executedArgs = args })
-    val toolContext =
-      ToolContext(invocationContext = getTestInvocationContext(), functionCallId = "fc1")
+    val toolContext = testToolContext(functionCallId = "fc1")
 
     val unused = tool.run(toolContext, mapOf("amount" to 100))
 
@@ -222,15 +206,13 @@ class FunctionToolTest {
       )
 
     // Below the threshold: no confirmation needed, execute runs.
-    val smallContext =
-      ToolContext(invocationContext = getTestInvocationContext(), functionCallId = "fc-small")
+    val smallContext = testToolContext(functionCallId = "fc-small")
     val unused1 = tool.run(smallContext, mapOf("amount" to 100))
     assertEquals(1, executions)
     assertTrue(smallContext.actions.requestedToolConfirmations.isEmpty())
 
     // Above the threshold: confirmation requested, execute does NOT run.
-    val largeContext =
-      ToolContext(invocationContext = getTestInvocationContext(), functionCallId = "fc-large")
+    val largeContext = testToolContext(functionCallId = "fc-large")
     val largeResult = tool.run(largeContext, mapOf("amount" to 5000))
     assertEquals(1, executions)
     assertEquals(
@@ -276,18 +258,4 @@ class FunctionToolTest {
         return result
       }
     }
-
-  private fun getTestInvocationContext() =
-    InvocationContext(
-      session =
-        Session(
-          key = SessionKey(appName = "app-name", userId = "user-id", id = "session-id"),
-          state = State(concurrentMutableMapOf()),
-          events = mutableListOf(),
-        ),
-      runConfig = RunConfig(),
-      agent = DummyAgent("test-agent"),
-      sessionService = InMemorySessionService(),
-      invocationId = "test-invocation-id",
-    )
 }

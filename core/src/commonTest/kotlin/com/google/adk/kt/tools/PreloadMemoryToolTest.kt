@@ -16,17 +16,14 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.agents.RunConfig
 import com.google.adk.kt.memory.MemoryEntry
 import com.google.adk.kt.memory.MemoryService
 import com.google.adk.kt.memory.SearchMemoryResponse
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.sessions.InMemorySessionService
 import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyMemoryService
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.testing.userMessage
 import com.google.adk.kt.types.Content
 import com.google.adk.kt.types.Part
@@ -51,7 +48,7 @@ class PreloadMemoryToolTest {
   @Test
   fun run_throwsUnsupportedOperationException() = runTest {
     val tool = PreloadMemoryTool()
-    val context = ToolContext(invocationContext = getTestInvocationContext())
+    val context = testToolContext()
 
     assertFailsWith<UnsupportedOperationException> { tool.run(context, emptyMap()) }
   }
@@ -75,7 +72,9 @@ class PreloadMemoryToolTest {
       }
     val userContent = userMessage("What is my favorite color?")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(memoryService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = memoryService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -92,7 +91,7 @@ class PreloadMemoryToolTest {
   @Test
   fun processLlmRequest_missingUserContent_returnsUnalteredRequest() = runTest {
     val tool = PreloadMemoryTool()
-    val context = ToolContext(invocationContext = getTestInvocationContext(DummyMemoryService()))
+    val context = testToolContext(testInvocationContext(memoryService = DummyMemoryService()))
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -105,10 +104,7 @@ class PreloadMemoryToolTest {
     val tool = PreloadMemoryTool()
     val userContent = userMessage("Hello")
     val context =
-      ToolContext(
-        invocationContext =
-          getTestInvocationContext(memoryService = null, userContent = userContent)
-      )
+      testToolContext(testInvocationContext(memoryService = null, userContent = userContent))
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -123,7 +119,9 @@ class PreloadMemoryToolTest {
       DummyMemoryService().apply { searchMemoryResponse = SearchMemoryResponse(emptyList()) }
     val userContent = userMessage("Hello")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(memoryService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = memoryService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -149,7 +147,9 @@ class PreloadMemoryToolTest {
       }
     val userContent = userMessage("Anything?")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(memoryService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = memoryService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -173,7 +173,9 @@ class PreloadMemoryToolTest {
       }
     val userContent = userMessage("query")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(memoryService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = memoryService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -199,7 +201,9 @@ class PreloadMemoryToolTest {
       }
     val userContent = userMessage("")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(memoryService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = memoryService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -222,7 +226,9 @@ class PreloadMemoryToolTest {
       }
     val userContent = userMessage("query")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(throwingService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = throwingService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     assertFailsWith<IllegalStateException> { tool.processLlmRequest(context, baseRequest) }
@@ -240,7 +246,9 @@ class PreloadMemoryToolTest {
       }
     val userContent = userMessage("query")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(memoryService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = memoryService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -266,7 +274,9 @@ class PreloadMemoryToolTest {
       }
     val userContent = userMessage("query")
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(memoryService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = memoryService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -303,7 +313,9 @@ class PreloadMemoryToolTest {
         parts = listOf(Part(text = "What is"), Part(text = "my favorite color?")),
       )
     val context =
-      ToolContext(invocationContext = getTestInvocationContext(recordingService, userContent))
+      testToolContext(
+        testInvocationContext(memoryService = recordingService, userContent = userContent)
+      )
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -311,18 +323,4 @@ class PreloadMemoryToolTest {
     assertEquals("What is my favorite color?", capturedQuery)
     assertEquals(baseRequest, updatedRequest)
   }
-
-  private fun getTestInvocationContext(
-    memoryService: MemoryService? = null,
-    userContent: Content? = null,
-  ) =
-    InvocationContext(
-      session = testSession(),
-      runConfig = RunConfig(),
-      agent = DummyAgent("test-agent"),
-      sessionService = InMemorySessionService(),
-      memoryService = memoryService,
-      userContent = userContent,
-      invocationId = "test-invocation-id",
-    )
 }

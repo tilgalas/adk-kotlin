@@ -16,10 +16,7 @@
 
 package com.google.adk.kt.tools.mcp
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.testing.DummyAgent
-import com.google.adk.kt.testing.testSession
-import com.google.adk.kt.tools.ToolContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.common.truth.Truth.assertThat
 import io.modelcontextprotocol.client.McpAsyncClient
 import io.modelcontextprotocol.spec.McpSchema
@@ -52,13 +49,6 @@ class LoadMcpResourceToolTest {
     return McpToolset(mockSessionManager)
   }
 
-  private fun createToolContext(): ToolContext {
-    val session = testSession()
-    val invocationContext =
-      InvocationContext(session = session, runConfig = null, agent = DummyAgent())
-    return ToolContext(invocationContext = invocationContext)
-  }
-
   @Test
   fun run_withTextContents_returnsConcatenatedText() = runTest {
     val mockMcpSession = mock<McpAsyncClient>()
@@ -74,7 +64,7 @@ class LoadMcpResourceToolTest {
     whenever(mockMcpSession.readResource(any<McpSchema.ReadResourceRequest>())) doReturn
       mono { readResourceResult }
 
-    val context = createToolContext()
+    val context = testToolContext()
     val result = tool.run(context, mapOf("uri" to "uri1"))
 
     assertThat(result).isEqualTo("Part 1 \n\nPart 2")
@@ -91,7 +81,7 @@ class LoadMcpResourceToolTest {
     whenever(mockMcpSession.readResource(any<McpSchema.ReadResourceRequest>())) doReturn
       mono { readResourceResult }
 
-    val context = createToolContext()
+    val context = testToolContext()
     val result = tool.run(context, mapOf("uri" to "uri1"))
 
     val resultStr = result as String
@@ -113,7 +103,7 @@ class LoadMcpResourceToolTest {
     whenever(mockMcpSession.readResource(any<McpSchema.ReadResourceRequest>())) doReturn
       mono { readResourceResult }
 
-    val context = createToolContext()
+    val context = testToolContext()
     val result = tool.run(context, mapOf("uri" to "uri1"))
 
     val resultStr = result as String
@@ -131,7 +121,7 @@ class LoadMcpResourceToolTest {
     whenever(mockMcpSession.readResource(any<McpSchema.ReadResourceRequest>())) doReturn
       mono { readResourceResult }
 
-    val context = createToolContext()
+    val context = testToolContext()
     val result = tool.run(context, mapOf("uri" to "uri1"))
 
     assertThat(result).isEqualTo("")
@@ -143,7 +133,7 @@ class LoadMcpResourceToolTest {
     val mcpToolset = createMcpToolset(mockMcpSession)
     val tool = LoadMcpResourceTool(mcpToolset, maxMcpResourceLength = 1000)
 
-    val context = createToolContext()
+    val context = testToolContext()
     val ex =
       assertFailsWith<McpToolException.McpToolExecutionException> { tool.run(context, emptyMap()) }
     assertThat(ex.cause).isInstanceOf(IllegalArgumentException::class.java)
@@ -158,7 +148,7 @@ class LoadMcpResourceToolTest {
     whenever(mockMcpSession.readResource(any<McpSchema.ReadResourceRequest>())) doReturn
       mono { throw RuntimeException("Server error") }
 
-    val context = createToolContext()
+    val context = testToolContext()
 
     val ex =
       assertFailsWith<McpToolException.McpToolExecutionException> {

@@ -16,15 +16,11 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.agents.RunConfig
-import com.google.adk.kt.artifacts.ArtifactService
 import com.google.adk.kt.events.EventActions
 import com.google.adk.kt.events.ToolConfirmation
-import com.google.adk.kt.sessions.InMemorySessionService
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyArtifactService
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.types.Part
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,7 +35,7 @@ class ToolContextTest {
 
   @Test
   fun toolContext_initialization_setsProperties() {
-    val invocationContext = getTestInvocationContext()
+    val invocationContext = testInvocationContext()
     val eventActions = EventActions()
     val toolConfirmation = ToolConfirmation(confirmed = true, hint = "hint")
     val context =
@@ -60,7 +56,7 @@ class ToolContextTest {
 
   @Test
   fun toolContext_initializationWithDefaults_setsProperties() {
-    val invocationContext = getTestInvocationContext()
+    val invocationContext = testInvocationContext()
     val context = ToolContext(invocationContext = invocationContext)
 
     assertEquals(invocationContext, context.invocationContext)
@@ -72,9 +68,7 @@ class ToolContextTest {
 
   @Test
   fun requestConfirmation_withHintAndPayload_requestsConfirmation() {
-    val invocationContext = getTestInvocationContext()
-    val context =
-      ToolContext(invocationContext = invocationContext, functionCallId = "function_call_id")
+    val context = testToolContext(functionCallId = "function_call_id")
 
     context.requestConfirmation(hint = "Please confirm", payload = "Test Payload")
 
@@ -87,9 +81,7 @@ class ToolContextTest {
 
   @Test
   fun requestConfirmation_defaultArguments_requestsConfirmationWithDefaults() {
-    val invocationContext = getTestInvocationContext()
-    val context =
-      ToolContext(invocationContext = invocationContext, functionCallId = "function_call_id")
+    val context = testToolContext(functionCallId = "function_call_id")
 
     context.requestConfirmation()
 
@@ -102,8 +94,7 @@ class ToolContextTest {
 
   @Test
   fun requestConfirmation_nullFunctionCallId_throwsException() {
-    val invocationContext = getTestInvocationContext()
-    val context = ToolContext(invocationContext = invocationContext)
+    val context = testToolContext()
 
     val exception = assertFailsWith<IllegalStateException> { context.requestConfirmation() }
 
@@ -122,8 +113,7 @@ class ToolContextTest {
         }
       )
 
-    val invocationContext = getTestInvocationContext(artifactService)
-    val context = ToolContext(invocationContext = invocationContext)
+    val context = testToolContext(testInvocationContext(artifactService = artifactService))
 
     val artifacts = context.listArtifacts()
     assertEquals(listOf("file1.txt", "file2.jpg"), artifacts)
@@ -131,8 +121,7 @@ class ToolContextTest {
 
   @Test
   fun listArtifacts_noService_returnsEmptyList() = runTest {
-    val invocationContext = getTestInvocationContext(null)
-    val context = ToolContext(invocationContext = invocationContext)
+    val context = testToolContext()
 
     val artifacts = context.listArtifacts()
     assertTrue(artifacts.isEmpty())
@@ -152,8 +141,7 @@ class ToolContextTest {
         }
       )
 
-    val invocationContext = getTestInvocationContext(artifactService)
-    val context = ToolContext(invocationContext = invocationContext)
+    val context = testToolContext(testInvocationContext(artifactService = artifactService))
 
     val part = context.loadArtifact("file1.txt")
     assertEquals(expectedPart, part)
@@ -161,20 +149,9 @@ class ToolContextTest {
 
   @Test
   fun loadArtifact_noService_returnsNull() = runTest {
-    val invocationContext = getTestInvocationContext(null)
-    val context = ToolContext(invocationContext = invocationContext)
+    val context = testToolContext()
 
     val part = context.loadArtifact("file1.txt")
     assertNull(part)
   }
-
-  private fun getTestInvocationContext(artifactService: ArtifactService? = null) =
-    InvocationContext(
-      session = testSession(),
-      runConfig = com.google.adk.kt.agents.RunConfig(), // Add default RunConfig
-      agent = DummyAgent("test-agent"),
-      sessionService = InMemorySessionService(), // Add InMemorySessionService
-      invocationId = "test-invocation-id", // Add invocationId
-      artifactService = artifactService,
-    )
 }

@@ -17,12 +17,11 @@
 package com.google.adk.kt.agents
 
 import com.google.adk.kt.collections.concurrentMutableMapOf
-import com.google.adk.kt.sessions.InMemorySessionService
 import com.google.adk.kt.sessions.Session
 import com.google.adk.kt.sessions.SessionKey
 import com.google.adk.kt.sessions.State
 import com.google.adk.kt.testing.DummyAgent
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.testing.userMessage
 import com.google.adk.kt.types.Content
 import com.google.adk.kt.types.Role
@@ -35,14 +34,7 @@ class ReadonlyContextImplTest {
   @Test
   fun readonlyContext_creation_setsDefaultValues() {
     val context =
-      InvocationContext(
-        runConfig = RunConfig(), // Add default RunConfig
-        agent = DummyAgent("test-agent"), // Use local TestAgent
-        session = testSession(),
-        userContent = Content(role = Role.USER),
-        invocationId = "invocation-id",
-        sessionService = InMemorySessionService(),
-      )
+      testInvocationContext(userContent = Content(role = Role.USER), invocationId = "invocation-id")
     val readonlyContext = context.toReadonlyContext()
 
     assertEquals("test_session_id", readonlyContext.session.key.id)
@@ -51,14 +43,7 @@ class ReadonlyContextImplTest {
 
   @Test
   fun readonlyContext_session_isDefensiveCopy() {
-    val context =
-      InvocationContext(
-        runConfig = RunConfig(),
-        session = testSession(),
-        agent = DummyAgent("agent"),
-        invocationId = "test-id",
-        // sessionService = InMemorySessionService(),
-      )
+    val context = testInvocationContext(agent = DummyAgent("agent"), invocationId = "test-id")
     val readonlyContext = context.toReadonlyContext()
 
     assertNotSame(context.session, readonlyContext.session)
@@ -74,12 +59,10 @@ class ReadonlyContextImplTest {
         events = mutableListOf(),
       )
     val context =
-      InvocationContext(
+      testInvocationContext(
         session = session,
-        runConfig = RunConfig(),
         agent = DummyAgent("agent"),
         invocationId = "test-id",
-        sessionService = InMemorySessionService(),
       )
     val readonlyContext = context.toReadonlyContext()
     val copyState = readonlyContext.state.toMutableMap()
@@ -92,13 +75,10 @@ class ReadonlyContextImplTest {
   fun readonlyContext_userContent_isDefensiveCopy() {
     val userContent = userMessage("test")
     val context =
-      InvocationContext(
-        runConfig = RunConfig(),
-        session = testSession(),
+      testInvocationContext(
         agent = DummyAgent("agent"),
         userContent = userContent,
         invocationId = "test-id",
-        sessionService = InMemorySessionService(),
       )
     val readonlyContext = context.toReadonlyContext()
 

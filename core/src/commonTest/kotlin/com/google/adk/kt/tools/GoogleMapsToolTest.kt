@@ -16,11 +16,9 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyModel
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.types.GenerateContentConfig
 import com.google.adk.kt.types.GoogleMaps
 import com.google.adk.kt.types.GoogleSearch
@@ -33,16 +31,6 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 
 class GoogleMapsToolTest {
-  private fun getTestToolContext(): ToolContext {
-    val invocationContext =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
-        agent = DummyAgent(),
-        artifactService = null,
-      )
-    return ToolContext(invocationContext = invocationContext)
-  }
 
   @Test
   fun declaration_returnsNull() {
@@ -53,7 +41,7 @@ class GoogleMapsToolTest {
   @Test
   fun processLlmRequest_gemini2_addsGoogleMaps() = runTest {
     val tool = GoogleMapsTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     var request = LlmRequest(model = DummyModel("gemini-2.0-flash"))
 
     request = tool.processLlmRequest(context, request)
@@ -67,7 +55,7 @@ class GoogleMapsToolTest {
   @Test
   fun processLlmRequest_unsupportedModel_throwsException() = runTest {
     val tool = GoogleMapsTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest(model = DummyModel("gpt-4"))
 
     assertFailsWith<IllegalArgumentException> { tool.processLlmRequest(context, request) }
@@ -76,7 +64,7 @@ class GoogleMapsToolTest {
   @Test
   fun processLlmRequest_overrideModel_usesOverride() = runTest {
     val tool = GoogleMapsTool(model = "gemini-2.0-flash")
-    val context = getTestToolContext()
+    val context = testToolContext()
     var request = LlmRequest(model = DummyModel("gemini-1.5-pro")) // Model on request is gemini-1
 
     request = tool.processLlmRequest(context, request)
@@ -90,7 +78,7 @@ class GoogleMapsToolTest {
   @Test
   fun processLlmRequest_noModel_throwsException() = runTest {
     val tool = GoogleMapsTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest()
 
     assertFailsWith<IllegalArgumentException> { tool.processLlmRequest(context, request) }
@@ -99,7 +87,7 @@ class GoogleMapsToolTest {
   @Test
   fun processLlmRequest_gemini2_withExistingGoogleMaps_doesNotAddTool() = runTest {
     val tool = GoogleMapsTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val existingTool = Tool(googleMaps = GoogleMaps())
     var request =
       LlmRequest(
@@ -118,7 +106,7 @@ class GoogleMapsToolTest {
   @Test
   fun processLlmRequest_gemini2_withOtherTool_addsGoogleMaps() = runTest {
     val tool = GoogleMapsTool()
-    val context = getTestToolContext()
+    val context = testToolContext()
     val existingTool = Tool(googleSearch = GoogleSearch())
     var request =
       LlmRequest(

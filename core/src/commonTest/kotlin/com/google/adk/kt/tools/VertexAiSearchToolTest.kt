@@ -16,11 +16,9 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyModel
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.types.VertexAISearchDataStoreSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,16 +28,6 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 
 class VertexAiSearchToolTest {
-  private fun getTestToolContext(): ToolContext {
-    val invocationContext =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
-        agent = DummyAgent(),
-        artifactService = null,
-      )
-    return ToolContext(invocationContext = invocationContext)
-  }
 
   @Test
   fun constructor_dataStoreIdAndSearchEngineIdNull_throwsException() {
@@ -72,13 +60,13 @@ class VertexAiSearchToolTest {
   @Test
   fun run_throwsUnsupportedOperationException() = runTest {
     val tool = VertexAiSearchTool(dataStoreId = "ds1")
-    assertFailsWith<UnsupportedOperationException> { tool.run(getTestToolContext(), emptyMap()) }
+    assertFailsWith<UnsupportedOperationException> { tool.run(testToolContext(), emptyMap()) }
   }
 
   @Test
   fun processLlmRequest_geminiWithDataStoreId_addsRetrievalTool() = runTest {
     val tool = VertexAiSearchTool(dataStoreId = "ds1", filter = "filter1", maxResults = 5)
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest(model = DummyModel("gemini-2.0-flash"))
 
     val updatedRequest = tool.processLlmRequest(context, request)
@@ -101,7 +89,7 @@ class VertexAiSearchToolTest {
   fun processLlmRequest_geminiWithSearchEngineId_addsRetrievalTool() = runTest {
     val specs = listOf(VertexAISearchDataStoreSpec(dataStore = "ds1"))
     val tool = VertexAiSearchTool(searchEngineId = "se1", dataStoreSpecs = specs, maxResults = 10)
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest(model = DummyModel("gemini-pro"))
 
     val updatedRequest = tool.processLlmRequest(context, request)
@@ -123,7 +111,7 @@ class VertexAiSearchToolTest {
   @Test
   fun processLlmRequest_unsupportedModel_throwsException() = runTest {
     val tool = VertexAiSearchTool(dataStoreId = "ds1")
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest(model = DummyModel("gpt-4"))
 
     assertFailsWith<IllegalArgumentException> { tool.processLlmRequest(context, request) }
@@ -132,7 +120,7 @@ class VertexAiSearchToolTest {
   @Test
   fun processLlmRequest_noModel_throwsException() = runTest {
     val tool = VertexAiSearchTool(dataStoreId = "ds1")
-    val context = getTestToolContext()
+    val context = testToolContext()
     val request = LlmRequest()
 
     assertFailsWith<IllegalArgumentException> { tool.processLlmRequest(context, request) }

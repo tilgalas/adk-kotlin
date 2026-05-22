@@ -21,7 +21,7 @@ package com.google.adk.kt.agents
 import com.google.adk.kt.annotations.ExperimentalResumabilityFeature
 import com.google.adk.kt.events.Event
 import com.google.adk.kt.testing.DummyAgent
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.testing.userMessage
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -107,14 +107,11 @@ class ParallelAgentTest {
     assertTrue(events.isEmpty(), "Expected no events to be emitted")
   }
 
-  private fun createTestContext(agent: BaseAgent): InvocationContext {
-    return InvocationContext(
-      session = testSession(),
-      runConfig = null,
+  private fun createTestContext(agent: BaseAgent): InvocationContext =
+    testInvocationContext(
       agent = agent,
       resumabilityConfig = ResumabilityConfig(isResumable = true),
     )
-  }
 
   @Test
   fun runAsync_resuming_skipsCompletedAgents() = runTest {

@@ -16,19 +16,12 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.agents.RunConfig
-import com.google.adk.kt.collections.concurrentMutableMapOf
 import com.google.adk.kt.memory.MemoryEntry
-import com.google.adk.kt.memory.MemoryService
 import com.google.adk.kt.memory.SearchMemoryResponse
 import com.google.adk.kt.models.LlmRequest
-import com.google.adk.kt.sessions.InMemorySessionService
-import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.sessions.SessionKey
-import com.google.adk.kt.sessions.State
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyMemoryService
+import com.google.adk.kt.testing.testInvocationContext
+import com.google.adk.kt.testing.testToolContext
 import com.google.adk.kt.types.Content
 import com.google.adk.kt.types.Part
 import kotlin.test.Test
@@ -63,7 +56,7 @@ class LoadMemoryToolTest {
               listOf(MemoryEntry(content = Content(parts = listOf(Part(text = "test-query")))))
           )
       }
-    val context = ToolContext(invocationContext = getTestInvocationContext(memoryService))
+    val context = testToolContext(testInvocationContext(memoryService = memoryService))
 
     val args = mapOf("query" to "test-query")
     val result = tool.run(context, args)
@@ -76,7 +69,7 @@ class LoadMemoryToolTest {
   @Test
   fun run_missingQuery_returnsErrorMap() = runTest {
     val tool = LoadMemoryTool()
-    val context = ToolContext(invocationContext = getTestInvocationContext(DummyMemoryService()))
+    val context = testToolContext(testInvocationContext(memoryService = DummyMemoryService()))
 
     val result = tool.run(context, emptyMap())
 
@@ -89,7 +82,7 @@ class LoadMemoryToolTest {
   fun run_missingMemoryService_returnsErrorMap() = runTest {
     val tool = LoadMemoryTool()
     // Do not provide memory service
-    val context = ToolContext(invocationContext = getTestInvocationContext())
+    val context = testToolContext()
 
     val args = mapOf("query" to "test-query")
     val result = tool.run(context, args)
@@ -102,7 +95,7 @@ class LoadMemoryToolTest {
   @Test
   fun processLlmRequest_injectsMemoryInstruction() = runTest {
     val tool = LoadMemoryTool()
-    val context = ToolContext(invocationContext = getTestInvocationContext())
+    val context = testToolContext()
     val baseRequest = LlmRequest()
 
     val updatedRequest = tool.processLlmRequest(context, baseRequest)
@@ -116,18 +109,4 @@ class LoadMemoryToolTest {
       }
     )
   }
-
-  private fun getTestInvocationContext(memoryService: MemoryService? = null) =
-    InvocationContext(
-      session =
-        Session(
-          key = SessionKey("app-name", "user-id", "session-id"),
-          state = State(concurrentMutableMapOf()),
-        ),
-      runConfig = RunConfig(),
-      agent = DummyAgent("test-agent"),
-      sessionService = InMemorySessionService(),
-      memoryService = memoryService,
-      invocationId = "test-invocation-id",
-    )
 }

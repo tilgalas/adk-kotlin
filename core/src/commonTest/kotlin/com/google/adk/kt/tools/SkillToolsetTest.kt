@@ -16,16 +16,10 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
-import com.google.adk.kt.agents.RunConfig
-import com.google.adk.kt.collections.concurrentMutableMapOf
-import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.sessions.SessionKey
-import com.google.adk.kt.sessions.State
 import com.google.adk.kt.skills.Frontmatter
 import com.google.adk.kt.skills.SkillSource
 import com.google.adk.kt.skills.SkillSourceException
-import com.google.adk.kt.testing.DummyAgent
+import com.google.adk.kt.testing.testToolContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -109,7 +103,7 @@ class SkillToolsetTest {
   @Test
   fun listSkillsTool_run_returnsSkillFrontmatter() = runTest {
     val tool = skillToolset.getTools(null).first { it.name == SkillToolset.TOOL_NAME_LIST_SKILLS }
-    val result = tool.run(getTestToolContext(), emptyMap()) as Map<*, *>
+    val result = tool.run(testToolContext(), emptyMap()) as Map<*, *>
     val skillsList = result["skills"] as? List<Map<String, Any?>>
     assertNotNull(skillsList)
     assertEquals(2, skillsList.size)
@@ -124,7 +118,7 @@ class SkillToolsetTest {
     val loadSkillTool = tools.first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL }
 
     val result =
-      loadSkillTool.run(getTestToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1"))
+      loadSkillTool.run(testToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1"))
         as Map<*, *>
 
     assertEquals("skill1", result[SkillToolset.PARAM_SKILL_NAME])
@@ -140,7 +134,7 @@ class SkillToolsetTest {
     val tools = skillToolset.getTools(null)
     val loadSkillTool = tools.first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL }
 
-    val result = loadSkillTool.run(getTestToolContext(), emptyMap()) as Map<*, *>
+    val result = loadSkillTool.run(testToolContext(), emptyMap()) as Map<*, *>
 
     assertNotNull(result[SkillToolset.KEY_ERROR])
   }
@@ -151,7 +145,7 @@ class SkillToolsetTest {
     val loadSkillTool = tools.first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL }
 
     val result =
-      loadSkillTool.run(getTestToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "unknown"))
+      loadSkillTool.run(testToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "unknown"))
         as Map<*, *>
 
     assertEquals("Skill unknown not found", result[SkillToolset.KEY_ERROR])
@@ -163,7 +157,7 @@ class SkillToolsetTest {
       skillToolset.getTools(null).first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL_RESOURCE }
     val result =
       tool.run(
-        getTestToolContext(),
+        testToolContext(),
         mapOf(
           SkillToolset.PARAM_SKILL_NAME to "skill1",
           SkillToolset.PARAM_PATH to "references/ref.md",
@@ -178,7 +172,7 @@ class SkillToolsetTest {
       skillToolset.getTools(null).first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL_RESOURCE }
     val result =
       tool.run(
-        getTestToolContext(),
+        testToolContext(),
         mapOf(
           SkillToolset.PARAM_SKILL_NAME to "skill1",
           SkillToolset.PARAM_PATH to "assets/config.txt",
@@ -193,7 +187,7 @@ class SkillToolsetTest {
       skillToolset.getTools(null).first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL_RESOURCE }
     val result =
       tool.run(
-        getTestToolContext(),
+        testToolContext(),
         mapOf(
           SkillToolset.PARAM_SKILL_NAME to "skill1",
           SkillToolset.PARAM_PATH to "assets/asset.dat",
@@ -208,7 +202,7 @@ class SkillToolsetTest {
       skillToolset.getTools(null).first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL_RESOURCE }
     val result =
       tool.run(
-        getTestToolContext(),
+        testToolContext(),
         mapOf(
           SkillToolset.PARAM_SKILL_NAME to "skill1",
           SkillToolset.PARAM_PATH to "scripts/run.sh",
@@ -223,7 +217,7 @@ class SkillToolsetTest {
       skillToolset.getTools(null).first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL_RESOURCE }
     val result =
       tool.run(
-        getTestToolContext(),
+        testToolContext(),
         mapOf(
           SkillToolset.PARAM_SKILL_NAME to "skill1",
           SkillToolset.PARAM_PATH to "references/unknown.md",
@@ -238,7 +232,7 @@ class SkillToolsetTest {
       skillToolset.getTools(null).first { it.name == SkillToolset.TOOL_NAME_LOAD_SKILL_RESOURCE }
     val result =
       tool.run(
-        getTestToolContext(),
+        testToolContext(),
         mapOf(
           SkillToolset.PARAM_SKILL_NAME to "skill1",
           SkillToolset.PARAM_PATH to "other/file.txt",
@@ -265,7 +259,7 @@ class SkillToolsetTest {
           it.name == SkillToolset.TOOL_NAME_LIST_SKILLS
         }
 
-      val thrown = assertFailsWith<RuntimeException> { tool.run(getTestToolContext(), emptyMap()) }
+      val thrown = assertFailsWith<RuntimeException> { tool.run(testToolContext(), emptyMap()) }
       assertEquals(sensitiveMessage, thrown.message)
     }
 
@@ -281,7 +275,7 @@ class SkillToolsetTest {
         it.name == SkillToolset.TOOL_NAME_LIST_SKILLS
       }
 
-    val thrown = assertFailsWith<RuntimeException> { tool.run(getTestToolContext(), emptyMap()) }
+    val thrown = assertFailsWith<RuntimeException> { tool.run(testToolContext(), emptyMap()) }
     assertEquals("boom", thrown.message)
   }
 
@@ -300,7 +294,7 @@ class SkillToolsetTest {
 
     val thrown =
       assertFailsWith<RuntimeException> {
-        tool.run(getTestToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1"))
+        tool.run(testToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1"))
       }
 
     assertEquals(sensitiveMessage, thrown.message)
@@ -322,8 +316,7 @@ class SkillToolsetTest {
         }
 
       val result =
-        tool.run(getTestToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1"))
-          as Map<*, *>
+        tool.run(testToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1")) as Map<*, *>
 
       assertEquals("Skill skill1 not found", result[SkillToolset.KEY_ERROR])
     }
@@ -343,7 +336,7 @@ class SkillToolsetTest {
 
     val thrown =
       assertFailsWith<RuntimeException> {
-        tool.run(getTestToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1"))
+        tool.run(testToolContext(), mapOf(SkillToolset.PARAM_SKILL_NAME to "skill1"))
       }
 
     assertEquals(sensitiveMessage, thrown.message)
@@ -367,7 +360,7 @@ class SkillToolsetTest {
     val thrown =
       assertFailsWith<RuntimeException> {
         tool.run(
-          getTestToolContext(),
+          testToolContext(),
           mapOf(
             SkillToolset.PARAM_SKILL_NAME to "skill1",
             SkillToolset.PARAM_PATH to "references/ref.md",
@@ -395,7 +388,7 @@ class SkillToolsetTest {
     val thrown =
       assertFailsWith<RuntimeException> {
         tool.run(
-          getTestToolContext(),
+          testToolContext(),
           mapOf(
             SkillToolset.PARAM_SKILL_NAME to "skill1",
             SkillToolset.PARAM_PATH to "references/ref.md",
@@ -440,20 +433,4 @@ class SkillToolsetTest {
 
     kotlin.test.assertNull(instruction)
   }
-
-  private fun getTestToolContext() =
-    ToolContext(
-      invocationContext =
-        InvocationContext(
-          session =
-            Session(
-              key = SessionKey(appName = "app-name", userId = "user-id", id = "session-id"),
-              state = State(concurrentMutableMapOf()),
-              events = mutableListOf(),
-            ),
-          runConfig = RunConfig(),
-          agent = DummyAgent(),
-          invocationId = "test-invocation-id",
-        )
-    )
 }

@@ -18,12 +18,11 @@ package com.google.adk.kt.agents
 
 import com.google.adk.kt.collections.concurrentMutableMapOf
 import com.google.adk.kt.events.EventActions
-import com.google.adk.kt.sessions.InMemorySessionService
 import com.google.adk.kt.sessions.Session
 import com.google.adk.kt.sessions.SessionKey
 import com.google.adk.kt.sessions.State
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyMemoryService
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.types.Content
 import kotlinx.coroutines.runBlocking
@@ -48,7 +47,7 @@ class CallbackContextTest {
           ),
         events = mutableListOf(),
       )
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
+    val context = testInvocationContext(session = session)
     val eventActions =
       EventActions(
         stateDelta =
@@ -77,7 +76,7 @@ class CallbackContextTest {
           ),
         events = mutableListOf(),
       )
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
+    val context = testInvocationContext(session = session)
     val eventActions =
       EventActions(
         stateDelta = concurrentMutableMapOf<String, Any>().apply { put("key1", State.REMOVED) }
@@ -96,7 +95,7 @@ class CallbackContextTest {
           State(concurrentMutableMapOf<String, Any>().apply { putAll(mapOf("key1" to "val1")) }),
         events = mutableListOf(),
       )
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
+    val context = testInvocationContext(session = session)
     val callbackContext = context.toCallbackContext()
 
     callbackContext.updateState("key2", "val2")
@@ -117,7 +116,7 @@ class CallbackContextTest {
   @Test
   fun addSessionToMemory_throwsWhenServiceNotAvailable() = runBlocking {
     val session = testSession()
-    val context = InvocationContext(session = session, runConfig = null, agent = DummyAgent())
+    val context = testInvocationContext(session = session)
     val callbackContext = context.toCallbackContext()
 
     val exception =
@@ -131,13 +130,7 @@ class CallbackContextTest {
   fun addSessionToMemory_callsMemoryService() = runBlocking {
     val session = testSession()
     val memoryService = DummyMemoryService()
-    val context =
-      InvocationContext(
-        session = session,
-        runConfig = null,
-        agent = DummyAgent(),
-        memoryService = memoryService,
-      )
+    val context = testInvocationContext(session = session, memoryService = memoryService)
     val callbackContext = context.toCallbackContext()
 
     callbackContext.addSessionToMemory()
@@ -148,16 +141,8 @@ class CallbackContextTest {
 
   @Test
   fun callbackContext_creation_setsDefaultValues() = runBlocking {
-    val agent = DummyAgent("test-agent")
     val context =
-      InvocationContext(
-        runConfig = RunConfig(), // Add default RunConfig
-        agent = agent,
-        session = testSession(),
-        userContent = Content(role = "user"),
-        invocationId = "invocation-id",
-        sessionService = InMemorySessionService(), // Add InMemorySessionService
-      )
+      testInvocationContext(userContent = Content(role = "user"), invocationId = "invocation-id")
     val callbackContext = context.toCallbackContext()
 
     callbackContext.updateState("key", "value")

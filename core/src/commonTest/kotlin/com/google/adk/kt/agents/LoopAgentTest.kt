@@ -23,7 +23,7 @@ import com.google.adk.kt.events.Event
 import com.google.adk.kt.events.EventActions
 import com.google.adk.kt.ids.Uuid
 import com.google.adk.kt.testing.DummyAgent
-import com.google.adk.kt.testing.testSession
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.types.Content
 import com.google.adk.kt.types.FunctionCall
 import com.google.adk.kt.types.Part
@@ -36,9 +36,7 @@ import kotlinx.coroutines.test.runTest
 class LoopAgentTest {
 
   private fun createTestContext() =
-    InvocationContext(
-      session = testSession(),
-      runConfig = null,
+    testInvocationContext(
       agent = DummyAgent("dummy"),
       resumabilityConfig = ResumabilityConfig(isResumable = true),
     )
@@ -187,9 +185,7 @@ class LoopAgentTest {
     val loopAgent = LoopAgent(name = "loop", subAgents = listOf(agent1, agent2), maxIterations = 3)
 
     val context =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
+      testInvocationContext(
         agent = DummyAgent("dummy"),
         resumabilityConfig = ResumabilityConfig(isResumable = true),
       )
@@ -216,9 +212,7 @@ class LoopAgentTest {
     val loopAgent = LoopAgent(name = "loop", subAgents = listOf(agent1), maxIterations = 1)
 
     val context =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
+      testInvocationContext(
         agent = DummyAgent("dummy"),
         resumabilityConfig = ResumabilityConfig(isResumable = false),
       )

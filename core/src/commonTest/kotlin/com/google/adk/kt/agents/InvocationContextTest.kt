@@ -28,6 +28,7 @@ import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyModel
 import com.google.adk.kt.testing.DummyTool
 import com.google.adk.kt.testing.modelMessage
+import com.google.adk.kt.testing.testInvocationContext
 import com.google.adk.kt.testing.testSession
 import com.google.adk.kt.testing.userMessage
 import com.google.adk.kt.tools.BaseTool
@@ -83,9 +84,7 @@ class InvocationContextTest {
   @Test
   fun branch_withChildAgent_returnsNewContextWithUpdatedBranchAndAgent() {
     val context =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
+      testInvocationContext(
         agent = DummyAgent("parent-agent"),
         userContent = Content(role = Role.USER),
         invocationId = "invocation-id",
@@ -108,13 +107,7 @@ class InvocationContextTest {
   @Test
   fun findMatchingFunctionCall_withMatchingFunctionCall_returnsMatchingEvent() = runTest {
     val session = testSession()
-    val context =
-      InvocationContext(
-        session = session,
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
-        invocationId = "inv-1",
-      )
+    val context = testInvocationContext(session = session, invocationId = "inv-1")
 
     val functionCallEvent =
       Event(
@@ -161,13 +154,7 @@ class InvocationContextTest {
   @Test
   fun findMatchingFunctionCall_withoutMatchingFunctionCall_returnsNull() = runTest {
     val session = testSession()
-    val context =
-      InvocationContext(
-        session = session,
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
-        invocationId = "inv-1",
-      )
+    val context = testInvocationContext(session = session, invocationId = "inv-1")
 
     session.events.add(
       Event(
@@ -209,13 +196,7 @@ class InvocationContextTest {
 
   @Test
   fun findMatchingFunctionCall_withoutFunctionResponses_returnsNull() = runTest {
-    val context =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
-        invocationId = "inv-1",
-      )
+    val context = testInvocationContext(invocationId = "inv-1")
 
     val match =
       context.findMatchingFunctionCall(
@@ -275,8 +256,7 @@ class InvocationContextTest {
 
   @Test
   fun setAgentState_withNewState_updatesMap() {
-    val context =
-      InvocationContext(session = testSession(), runConfig = null, agent = DummyAgent("test-agent"))
+    val context = testInvocationContext()
 
     val state = TypedData.StringValue("some-state")
     context.setAgentState("agent-A", state)
@@ -287,8 +267,7 @@ class InvocationContextTest {
 
   @Test
   fun setAgentState_withEndOfAgent_removesStateAndSetsEndOfAgent() {
-    val context =
-      InvocationContext(session = testSession(), runConfig = null, agent = DummyAgent("test-agent"))
+    val context = testInvocationContext()
     context.agentStates["agent-A"] = TypedData.StringValue("some-state")
 
     context.setAgentState("agent-A", endOfAgent = true)
@@ -299,8 +278,7 @@ class InvocationContextTest {
 
   @Test
   fun setAgentState_withNullStateAndNotEnd_removesBoth() {
-    val context =
-      InvocationContext(session = testSession(), runConfig = null, agent = DummyAgent("test-agent"))
+    val context = testInvocationContext()
     context.agentStates["agent-A"] = TypedData.StringValue("some-state")
     context.endOfAgents["agent-A"] = false
 
@@ -312,13 +290,7 @@ class InvocationContextTest {
 
   @Test
   fun isResumable_withConfigTrue_returnsTrue() {
-    val context =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
-        resumabilityConfig = ResumabilityConfig(isResumable = true),
-      )
+    val context = testInvocationContext(resumabilityConfig = ResumabilityConfig(isResumable = true))
 
     assertEquals(true, context.isResumable)
   }
@@ -326,25 +298,14 @@ class InvocationContextTest {
   @Test
   fun isResumable_withConfigFalse_returnsFalse() {
     val context =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
-        resumabilityConfig = ResumabilityConfig(isResumable = false),
-      )
+      testInvocationContext(resumabilityConfig = ResumabilityConfig(isResumable = false))
 
     assertFalse(context.isResumable)
   }
 
   @Test
   fun isResumable_withNullConfig_returnsFalse() {
-    val context =
-      InvocationContext(
-        session = testSession(),
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
-        resumabilityConfig = null,
-      )
+    val context = testInvocationContext(runConfig = null)
 
     assertFalse(context.isResumable)
   }
@@ -355,7 +316,7 @@ class InvocationContextTest {
     val subAgentC = DummyAgent("agent-C")
     val parentAgent = DummyAgent("agent-A", subAgents = listOf(subAgentB, subAgentC))
 
-    val context = InvocationContext(session = testSession(), runConfig = null, agent = parentAgent)
+    val context = testInvocationContext(agent = parentAgent)
 
     context.agentStates["agent-B"] = TypedData.StringValue("state-B")
     context.agentStates["agent-C"] = TypedData.StringValue("state-C")
@@ -370,10 +331,8 @@ class InvocationContextTest {
   fun populateInvocationAgentStates_withEndOfAgent_removesAgentState() = runTest {
     val session = testSession()
     val context =
-      InvocationContext(
+      testInvocationContext(
         session = session,
-        runConfig = null,
-        agent = DummyAgent("test-agent"),
         resumabilityConfig = ResumabilityConfig(isResumable = true),
         invocationId = "inv-1",
       )
@@ -395,10 +354,8 @@ class InvocationContextTest {
     runTest {
       val session = testSession()
       val context =
-        InvocationContext(
+        testInvocationContext(
           session = session,
-          runConfig = null,
-          agent = DummyAgent("test-agent"),
           resumabilityConfig = ResumabilityConfig(isResumable = true),
           invocationId = "inv-1",
         )
@@ -484,10 +441,7 @@ class InvocationContextTest {
   }
 
   private fun pausableInvocationContext(resumable: Boolean): InvocationContext =
-    InvocationContext(
-      session = testSession(),
-      runConfig = null,
-      agent = DummyAgent("test-agent"),
+    testInvocationContext(
       invocationId = "inv-1",
       resumabilityConfig = ResumabilityConfig(isResumable = resumable),
     )
@@ -560,8 +514,7 @@ class InvocationContextTest {
       val tool = DummyTool(name = "test_tool", isLongRunning = true) { _, _ -> placeholder }
 
       val context =
-        InvocationContext(
-          session = testSession(),
+        testInvocationContext(
           agent = LlmAgent(name = "test_llm_agent", model = DummyModel("mock_model")),
           invocationId = "inv",
         )
@@ -584,8 +537,7 @@ class InvocationContextTest {
     val tool = DummyTool(name = "test_tool", isLongRunning = true) { _, _ -> Unit }
 
     val context =
-      InvocationContext(
-        session = testSession(),
+      testInvocationContext(
         agent = LlmAgent(name = "test_llm_agent", model = DummyModel("mock_model")),
         invocationId = "inv",
       )
@@ -609,8 +561,7 @@ class InvocationContextTest {
         DummyTool(name = "test_tool", isLongRunning = true) { _, _ -> emptyMap<String, Any>() }
 
       val context =
-        InvocationContext(
-          session = testSession(),
+        testInvocationContext(
           agent = LlmAgent(name = "test_llm_agent", model = DummyModel("mock_model")),
           invocationId = "inv",
         )
@@ -634,8 +585,7 @@ class InvocationContextTest {
     val tool = DummyTool(name = "test_tool", isLongRunning = true) { _, _ -> "pending" }
 
     val context =
-      InvocationContext(
-        session = testSession(),
+      testInvocationContext(
         agent = LlmAgent(name = "test_llm_agent", model = DummyModel("mock_model")),
         invocationId = "inv",
       )
@@ -662,8 +612,7 @@ class InvocationContextTest {
     val tool = DummyTool(name = "test_tool", isLongRunning = false) { _, _ -> Unit }
 
     val context =
-      InvocationContext(
-        session = testSession(),
+      testInvocationContext(
         agent = LlmAgent(name = "test_llm_agent", model = DummyModel("mock_model")),
         invocationId = "inv",
       )
@@ -690,8 +639,7 @@ class InvocationContextTest {
       DummyTool(name = "test_tool") { _, _ -> throw IllegalStateException("database unreachable") }
 
     val context =
-      InvocationContext(
-        session = testSession(),
+      testInvocationContext(
         agent = LlmAgent(name = "test_llm_agent", model = DummyModel("mock_model")),
         invocationId = "inv",
       )

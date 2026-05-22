@@ -18,24 +18,18 @@
 
 package com.google.adk.kt.tools
 
-import com.google.adk.kt.agents.InvocationContext
 import com.google.adk.kt.agents.LlmAgent
 import com.google.adk.kt.agents.LoopAgent
 import com.google.adk.kt.agents.LoopAgentState
 import com.google.adk.kt.agents.ResumabilityConfig
-import com.google.adk.kt.agents.RunConfig
 import com.google.adk.kt.agents.TypedData
 import com.google.adk.kt.annotations.ExperimentalResumabilityFeature
-import com.google.adk.kt.collections.concurrentMutableMapOf
 import com.google.adk.kt.models.LlmResponse
-import com.google.adk.kt.sessions.InMemorySessionService
-import com.google.adk.kt.sessions.Session
-import com.google.adk.kt.sessions.SessionKey
-import com.google.adk.kt.sessions.State
-import com.google.adk.kt.testing.DummyAgent
 import com.google.adk.kt.testing.DummyModel
 import com.google.adk.kt.testing.modelFunctionCallResponse
 import com.google.adk.kt.testing.modelMessage
+import com.google.adk.kt.testing.testInvocationContext
+import com.google.adk.kt.testing.testToolContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -47,7 +41,7 @@ class ExitLoopToolTest {
   @Test
   fun run_setsEscalateAndSkipSummarization() = runTest {
     val tool = ExitLoopTool()
-    val toolContext = ToolContext(invocationContext = getTestInvocationContext())
+    val toolContext = testToolContext()
 
     val result = tool.run(toolContext, emptyMap())
 
@@ -84,8 +78,7 @@ class ExitLoopToolTest {
     val llmAgent = LlmAgent(name = "llm-agent", model = mockModel, tools = listOf(ExitLoopTool()))
     val loopAgent = LoopAgent(name = "loop", subAgents = listOf(llmAgent), maxIterations = 5)
 
-    val context =
-      getTestInvocationContext().copy(resumabilityConfig = ResumabilityConfig(isResumable = true))
+    val context = testInvocationContext(resumabilityConfig = ResumabilityConfig(isResumable = true))
     val events = loopAgent.runAsync(context).toList()
 
     val functionCallEvents = events.filter {
@@ -106,18 +99,4 @@ class ExitLoopToolTest {
     // iteration_count is 3 because it reports completed iterations before the current one
     assertEquals(3, timesLooped)
   }
-
-  private fun getTestInvocationContext() =
-    InvocationContext(
-      session =
-        Session(
-          key = SessionKey(appName = "app-name", userId = "user-id", id = "session-id"),
-          state = State(concurrentMutableMapOf()),
-          events = mutableListOf(),
-        ),
-      runConfig = RunConfig(),
-      agent = DummyAgent("test-agent"),
-      sessionService = InMemorySessionService(),
-      invocationId = "test-invocation-id",
-    )
 }
