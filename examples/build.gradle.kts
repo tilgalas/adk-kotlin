@@ -23,6 +23,7 @@ sourceSets { main { java.srcDirs("src/main/kotlin") } }
 
 dependencies {
   implementation(project(":google-adk-kotlin-core"))
+  implementation(libs.google.cloud.storage)
   implementation(libs.kotlinx.coroutines.core)
 
   ksp(project(":google-adk-kotlin-processor"))
