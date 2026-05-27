@@ -42,6 +42,7 @@ class EventActionsCommonTest {
     assertThat(eventActions.transferToAgent).isNull()
     assertThat(eventActions.escalate).isFalse()
     assertThat(eventActions.requestedToolConfirmations).isEmpty()
+    assertThat(eventActions.compaction).isNull()
   }
 
   @Test

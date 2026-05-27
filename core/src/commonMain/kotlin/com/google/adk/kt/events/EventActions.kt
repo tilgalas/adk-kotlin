@@ -38,6 +38,8 @@ import com.google.adk.kt.sessions.State
  * @property rewindBeforeInvocationId If set, the agent will rewind history before the specified
  *   invocation ID.
  * @property agentState The state of the agent for resumability.
+ * @property compaction If set, this event carries a context-compaction summary that replaces the
+ *   compacted range of events when the next LLM prompt is built. See [EventCompaction].
  */
 data class EventActions(
   var skipSummarization: Boolean = false,
@@ -49,6 +51,7 @@ data class EventActions(
   val requestedToolConfirmations: MutableMap<String, ToolConfirmation> = concurrentMutableMapOf(),
   var rewindBeforeInvocationId: String? = null,
   var agentState: TypedData? = null,
+  var compaction: EventCompaction? = null,
 ) {
   /**
    * Removes a key from the state delta.
@@ -88,5 +91,6 @@ data class EventActions(
         },
       rewindBeforeInvocationId = other.rewindBeforeInvocationId ?: this.rewindBeforeInvocationId,
       agentState = other.agentState ?: this.agentState,
+      compaction = other.compaction ?: this.compaction,
     )
 }

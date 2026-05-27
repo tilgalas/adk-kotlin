@@ -18,8 +18,11 @@ package com.google.adk.kt.events
 
 import com.google.adk.kt.agents.TypedData
 import com.google.adk.kt.sessions.State
+import com.google.adk.kt.types.Content
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 
 class EventActionsTest {
 
@@ -42,6 +45,18 @@ class EventActionsTest {
   fun mergeWith_mergesCorrectly() {
     val toolConfirmation1 = ToolConfirmation(confirmed = false)
     val toolConfirmation2 = ToolConfirmation(confirmed = true)
+    val compaction1 =
+      EventCompaction(
+        startTimestamp = 1L,
+        endTimestamp = 10L,
+        compactedContent = Content.fromText("model", "first summary"),
+      )
+    val compaction2 =
+      EventCompaction(
+        startTimestamp = 11L,
+        endTimestamp = 20L,
+        compactedContent = Content.fromText("model", "second summary"),
+      )
 
     val ea1 =
       EventActions(
@@ -53,6 +68,7 @@ class EventActionsTest {
         endOfAgent = false,
         requestedToolConfirmations = mutableMapOf("tc1" to toolConfirmation1),
         rewindBeforeInvocationId = "id1",
+        compaction = compaction1,
       )
     val ea2 =
       EventActions(
@@ -64,6 +80,7 @@ class EventActionsTest {
         endOfAgent = true,
         requestedToolConfirmations = mutableMapOf("tc2" to toolConfirmation2),
         rewindBeforeInvocationId = "id2",
+        compaction = compaction2,
       )
 
     val merged = ea1.mergeWith(ea2)
@@ -78,6 +95,7 @@ class EventActionsTest {
         requestedToolConfirmations =
           mutableMapOf("tc1" to toolConfirmation1, "tc2" to toolConfirmation2),
         rewindBeforeInvocationId = "id2",
+        compaction = compaction2,
       )
     assertEquals(expected, merged)
   }
@@ -100,5 +118,42 @@ class EventActionsTest {
     val merged = ea1.mergeWith(ea2)
 
     assertEquals(TypedData.IntValue(42), merged.agentState)
+  }
+
+  @Test
+  fun mergeWith_otherHasCompactionThisDoesNot_usesOther() {
+    val compaction =
+      EventCompaction(
+        startTimestamp = 100L,
+        endTimestamp = 200L,
+        compactedContent = Content.fromText("model", "summary"),
+      )
+    val ea1 = EventActions()
+    val ea2 = EventActions(compaction = compaction)
+
+    val merged = ea1.mergeWith(ea2)
+
+    assertSame(compaction, merged.compaction)
+  }
+
+  @Test
+  fun mergeWith_thisHasCompactionOtherDoesNot_keepsThis() {
+    val compaction =
+      EventCompaction(
+        startTimestamp = 100L,
+        endTimestamp = 200L,
+        compactedContent = Content.fromText("model", "summary"),
+      )
+    val ea1 = EventActions(compaction = compaction)
+    val ea2 = EventActions()
+
+    val merged = ea1.mergeWith(ea2)
+
+    assertSame(compaction, merged.compaction)
+  }
+
+  @Test
+  fun defaultConstructor_compactionIsNull() {
+    assertNull(EventActions().compaction)
   }
 }
