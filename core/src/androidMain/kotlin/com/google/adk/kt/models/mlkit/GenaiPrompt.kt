@@ -20,12 +20,11 @@ import com.google.adk.kt.logging.LoggerFactory
 import com.google.adk.kt.models.LlmRequest
 import com.google.adk.kt.models.LlmResponse
 import com.google.adk.kt.models.Model
+import com.google.adk.kt.models.mlkit.GenaiPromptTracing.format
 import com.google.adk.kt.utils.mlkit.GenaiPromptConversions.toGenerateContentRequest
 import com.google.adk.kt.utils.mlkit.GenaiPromptConversions.toLlmResponse
 import com.google.adk.kt.utils.mlkit.GenerateContentResponseAggregator
 import com.google.adk.kt.utils.mlkit.toAggregatedResponse
-import com.google.mlkit.genai.prompt.GenerateContentRequest
-import com.google.mlkit.genai.prompt.GenerateContentResponse
 import com.google.mlkit.genai.prompt.GenerativeModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -50,58 +49,53 @@ private constructor(val generativeModel: GenerativeModel, override val name: Str
      */
     fun create(generativeModel: GenerativeModel, name: String = "GenaiPrompt") =
       GenaiPrompt(generativeModel, name)
-
-    private fun trace(request: GenerateContentRequest) = logger.trace {
-      val imageTrace = request.image?.bitmap?.let { "${it.width}x${it.height}" } ?: "none"
-      "generateContentRequest: text: ${request.text.textString.length} chars, " +
-        "promptPrefix: ${request.promptPrefix?.textString?.length ?: 0} chars, image: ${imageTrace}"
-    }
-
-    private fun trace(response: GenerateContentResponse) = logger.trace {
-      val candidate = response.candidates.firstOrNull()
-      "generateContentResponse text: ${candidate?.text?.length ?: 0} chars, finishReason: ${candidate?.finishReason}"
-    }
   }
 
   private suspend fun generateContentNonStreaming(request: LlmRequest): LlmResponse {
     return generativeModel
-      .generateContent(request.toGenerateContentRequest().also { trace(it) })
-      .also { trace(it) }
+      .generateContent(request.toGenerateContentRequest().also { logger.trace { format(it) } })
+      .also { logger.trace { format(it) } }
       .toLlmResponse()
-      .also { logger.trace { "final response: ${it}" } }
+      .also { logger.trace { format(it) } }
   }
 
   private fun generateContentStreaming(request: LlmRequest): Flow<LlmResponse> = flow {
     val responseAggregator = GenerateContentResponseAggregator()
     generativeModel
-      .generateContentStream(request.toGenerateContentRequest().also { trace(it) })
+      .generateContentStream(
+        request.toGenerateContentRequest().also { logger.trace { format(it) } }
+      )
       .collect {
-        responseAggregator.processResponse(it.toAggregatedResponse())
+        responseAggregator.processResponse(
+          it.toAggregatedResponse().also { aggregatedResponse ->
+            logger.trace { "partial response: ${format(aggregatedResponse)}" }
+          }
+        )
         emit(
           it
-            .also { response -> trace(response) }
+            .also { response -> logger.trace { "partial response: ${format(response)}" } }
             .toLlmResponse()
             .copy(partial = true)
-            .also { response -> logger.trace { "partial response: ${response}" } }
+            .also { response -> logger.trace { "partial response: ${format(response)}" } }
         )
       }
 
     emit(
       responseAggregator
         .aggregate()
-        .also { response -> logger.trace { "aggregated response: ${response}" } }
+        .also { response -> logger.trace { "final response: ${format(response)}" } }
         .toLlmResponse()
         .copy(partial = false)
-        .also { response -> logger.trace { "final response: ${response}" } }
+        .also { response -> logger.trace { "final response: ${format(response)}" } }
     )
   }
 
   override fun generateContent(request: LlmRequest, stream: Boolean): Flow<LlmResponse> {
-    logger.trace { "request: ${request}, stream: ${stream}" }
-    if (stream) {
-      return generateContentStreaming(request)
+    logger.trace { "request: ${format(request)}, stream: $stream" }
+    return if (stream) {
+      generateContentStreaming(request)
     } else {
-      return flow { emit(generateContentNonStreaming(request)) }
+      flow { emit(generateContentNonStreaming(request)) }
     }
   }
 }
