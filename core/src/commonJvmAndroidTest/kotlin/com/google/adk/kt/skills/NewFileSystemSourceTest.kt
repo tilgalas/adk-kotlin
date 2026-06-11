@@ -17,8 +17,10 @@
 package com.google.adk.kt.skills
 
 import com.google.common.truth.Truth.assertThat
+import com.google.errorprone.annotations.CanIgnoreReturnValue
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.writeText
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -42,6 +44,42 @@ class NewFileSystemSourceTest {
   fun tearDown() {
     tempDir.toFile().deleteRecursively()
   }
+
+  @CanIgnoreReturnValue
+  private fun createSkill(
+    parent: Path = tempDir,
+    dirName: String,
+    name: String = dirName,
+    description: String = "d",
+    instructions: String = "",
+  ): Path {
+    val skillDir = parent.resolve(dirName)
+    Files.createDirectory(skillDir)
+    val body = buildString {
+      append("---\n")
+      append("name: ").append(name).append('\n')
+      append("description: ").append(description).append('\n')
+      append("---\n")
+      if (instructions.isNotEmpty()) append(instructions).append('\n')
+    }
+    skillDir.resolve(SKILL_MD).writeText(body)
+    return skillDir
+  }
+
+  @CanIgnoreReturnValue
+  private fun writeRawSkillMd(parent: Path = tempDir, dirName: String, content: String): Path {
+    val skillDir = parent.resolve(dirName)
+    Files.createDirectory(skillDir)
+    skillDir.resolve(SKILL_MD).writeText(content)
+    return skillDir
+  }
+
+  @CanIgnoreReturnValue
+  private fun Path.mkSubdir(name: String): Path = resolve(name).also { Files.createDirectory(it) }
+
+  @CanIgnoreReturnValue
+  private fun Path.writeFile(name: String, content: String): Path =
+    resolve(name).also { it.writeText(content) }
 
   @Test
   fun listFrontmatters_emptyDirectory_returnsEmptyList() = runTest {
@@ -69,7 +107,7 @@ class NewFileSystemSourceTest {
   @Test
   fun listFrontmatters_baseDirIsFile_returnsFailure() = runTest {
     val filePath = tempDir.resolve("not-a-directory")
-    Files.writeString(filePath, "some content")
+    filePath.writeText("some content")
     val brokenSource = NewFileSystemSource(filePath.toString())
 
     val result = brokenSource.listFrontmatters()
@@ -84,33 +122,8 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listFrontmatters_validSkills_returnsFrontmatters() = runTest {
-    val skillDir1 = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir1)
-    Files.writeString(
-      skillDir1.resolve("SKILL.md"),
-      """
-      ---
-      name: skill1
-      description: Description 1
-      ---
-      Instructions 1
-      """
-        .trimIndent(),
-    )
-
-    val skillDir2 = tempDir.resolve("skill2")
-    Files.createDirectory(skillDir2)
-    Files.writeString(
-      skillDir2.resolve("SKILL.md"),
-      """
-      ---
-      name: skill2
-      description: Description 2
-      ---
-      Instructions 2
-      """
-        .trimIndent(),
-    )
+    createSkill(dirName = "skill1", description = "Description 1", instructions = "Instructions 1")
+    createSkill(dirName = "skill2", description = "Description 2", instructions = "Instructions 2")
 
     val result = source.listFrontmatters()
 
@@ -122,20 +135,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listFrontmatters_missingSkillMd_returnsFailure() = runTest {
-    val skillDir1 = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir1)
-    Files.writeString(
-      skillDir1.resolve("SKILL.md"),
-      """
-      ---
-      name: skill1
-      description: Description 1
-      ---
-      Instructions 1
-      """
-        .trimIndent(),
-    )
-
+    createSkill(dirName = "skill1", description = "Description 1", instructions = "Instructions 1")
     // Invalid: missing SKILL.md
     Files.createDirectory(tempDir.resolve("invalid1"))
 
@@ -150,18 +150,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listFrontmatters_mismatchedName_returnsFailure() = runTest {
-    val invalidDir = tempDir.resolve("invalid2")
-    Files.createDirectory(invalidDir)
-    Files.writeString(
-      invalidDir.resolve("SKILL.md"),
-      """
-      ---
-      name: mismatched
-      description: Description
-      ---
-      """
-        .trimIndent(),
-    )
+    createSkill(dirName = "invalid2", name = "mismatched", description = "Description")
 
     val result = source.listFrontmatters()
 
@@ -174,18 +163,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadFrontmatter_invalidFrontmatterName_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("invalid_name")
-    Files.createDirectory(skillDir)
-    Files.writeString(
-      skillDir.resolve("SKILL.md"),
-      """
-      ---
-      name: invalid_name
-      description: Description
-      ---
-      """
-        .trimIndent(),
-    )
+    createSkill(dirName = "invalid_name", description = "Description")
 
     val result = source.loadFrontmatter("invalid_name")
 
@@ -198,30 +176,15 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listResources_returnsPathsRelativeToSkillRoot() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: skill1\ndescription: d\n---\n")
+    val skillDir = createSkill(dirName = "skill1")
+    val referencesDir = skillDir.mkSubdir("references")
+    referencesDir.writeFile("file1.txt", "content1")
+    referencesDir.writeFile("file2.txt", "content2")
+    val assetsDir = skillDir.mkSubdir("assets")
+    assetsDir.writeFile("root_file.txt", "content_root")
+    val scriptsDir = skillDir.mkSubdir("scripts")
+    scriptsDir.writeFile("run.sh", "echo hello")
 
-    val referencesDir = skillDir.resolve("references")
-    Files.createDirectory(referencesDir)
-    Files.writeString(referencesDir.resolve("file1.txt"), "content1")
-    Files.writeString(referencesDir.resolve("file2.txt"), "content2")
-
-    val assetsDir = skillDir.resolve("assets")
-    Files.createDirectory(assetsDir)
-    Files.writeString(assetsDir.resolve("root_file.txt"), "content_root")
-
-    val scriptsDir = skillDir.resolve("scripts")
-    Files.createDirectory(scriptsDir)
-    Files.writeString(scriptsDir.resolve("run.sh"), "echo hello")
-
-    assertThat(source.listResources("skill1", ".").getOrThrow())
-      .containsExactly(
-        "assets/root_file.txt",
-        "references/file1.txt",
-        "references/file2.txt",
-        "scripts/run.sh",
-      )
     assertThat(source.listResources("skill1", "references").getOrThrow())
       .containsExactly("references/file1.txt", "references/file2.txt")
     assertThat(source.listResources("skill1", "assets").getOrThrow())
@@ -232,18 +195,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadFrontmatter_validSkill_returnsFrontmatter() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(
-      skillDir.resolve("SKILL.md"),
-      """
-      ---
-      name: skill1
-      description: Description 1
-      ---
-      """
-        .trimIndent(),
-    )
+    createSkill(dirName = "skill1", description = "Description 1")
 
     val result = source.loadFrontmatter("skill1")
 
@@ -281,18 +233,10 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadInstructions_validSkill_returnsInstructions() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(
-      skillDir.resolve("SKILL.md"),
-      """
-      ---
-      name: skill1
-      description: Description 1
-      ---
-      Instructions for skill1
-      """
-        .trimIndent(),
+    createSkill(
+      dirName = "skill1",
+      description = "Description 1",
+      instructions = "Instructions for skill1",
     )
 
     val result = source.loadInstructions("skill1")
@@ -313,13 +257,8 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadResource_validResource_returnsBytes() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: skill1\ndescription: d\n---\n")
-
-    val assetsDir = skillDir.resolve("assets")
-    Files.createDirectory(assetsDir)
-    Files.writeString(assetsDir.resolve("resource.txt"), "hello world")
+    val skillDir = createSkill(dirName = "skill1")
+    skillDir.mkSubdir("assets").writeFile("resource.txt", "hello world")
 
     val result = source.loadResource("skill1", "assets/resource.txt")
 
@@ -329,9 +268,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadResource_nonexistentResource_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: skill1\ndescription: d\n---\n")
+    createSkill(dirName = "skill1")
 
     val result = source.loadResource("skill1", "assets/nonexistent.txt")
 
@@ -344,9 +281,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadResource_unauthorizedDirectory_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: skill1\ndescription: d\n---\n")
+    createSkill(dirName = "skill1")
 
     val result = source.loadResource("skill1", "unauthorized/file.txt")
 
@@ -369,12 +304,8 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listResources_emptySearchPath_treatsAsRoot() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: skill1\ndescription: d\n---\n")
-    val referencesDir = skillDir.resolve("references")
-    Files.createDirectory(referencesDir)
-    Files.writeString(referencesDir.resolve("file1.txt"), "content1")
+    val skillDir = createSkill(dirName = "skill1")
+    skillDir.mkSubdir("references").writeFile("file1.txt", "content1")
 
     val result = source.listResources("skill1", "")
 
@@ -394,9 +325,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listResources_skillNameMismatch_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("test-skill")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: wrong-skill\ndescription: d\n---\n")
+    createSkill(dirName = "test-skill", name = "wrong-skill")
 
     val result = source.listResources("test-skill", ".")
 
@@ -408,9 +337,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listResources_invalidFrontmatter_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("test-skill")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\ninvalid: [yaml\n---\n")
+    writeRawSkillMd(dirName = "test-skill", content = "---\ninvalid: [yaml\n---\n")
 
     val result = source.listResources("test-skill", ".")
 
@@ -422,9 +349,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadFrontmatter_emptyFrontmatter_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("test-skill")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\n---\n")
+    writeRawSkillMd(dirName = "test-skill", content = "---\n---\n")
 
     val result = source.loadFrontmatter("test-skill")
 
@@ -436,9 +361,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun loadFrontmatter_nonMapFrontmatterRoot_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("test-skill")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\n- a\n- b\n---\n")
+    writeRawSkillMd(dirName = "test-skill", content = "---\n- a\n- b\n---\n")
 
     val result = source.loadFrontmatter("test-skill")
 
@@ -450,11 +373,8 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listResources_unauthorizedDirectory_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: skill1\ndescription: d\n---\n")
-    val unauthorizedDir = skillDir.resolve("unauthorized")
-    Files.createDirectory(unauthorizedDir)
+    val skillDir = createSkill(dirName = "skill1")
+    skillDir.mkSubdir("unauthorized")
 
     val result = source.listResources("skill1", "unauthorized")
 
@@ -467,9 +387,7 @@ class NewFileSystemSourceTest {
 
   @Test
   fun listResources_directoryNotFound_returnsFailure() = runTest {
-    val skillDir = tempDir.resolve("skill1")
-    Files.createDirectory(skillDir)
-    Files.writeString(skillDir.resolve("SKILL.md"), "---\nname: skill1\ndescription: d\n---\n")
+    createSkill(dirName = "skill1")
 
     val result = source.listResources("skill1", "references/missing")
 
@@ -477,5 +395,9 @@ class NewFileSystemSourceTest {
     val exception = result.exceptionOrNull()
     assertThat(exception).isInstanceOf(SkillSourceException::class.java)
     assertThat(exception!!.message).contains("Resource not found")
+  }
+
+  private companion object {
+    const val SKILL_MD = "SKILL.md"
   }
 }

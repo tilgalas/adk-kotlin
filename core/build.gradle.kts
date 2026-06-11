@@ -42,7 +42,10 @@ kotlin {
     }
     val commonJvmAndroidMain by creating {
       dependsOn(commonMain)
-      dependencies { implementation(libs.kxml2) }
+      dependencies {
+        implementation(libs.kxml2)
+        implementation(libs.snakeyaml)
+      }
     }
     val commonJvmAndroidTest by creating { dependsOn(commonTest) }
     val jvmMain by getting {
@@ -55,7 +58,6 @@ kotlin {
         implementation(libs.opentelemetry.api)
         implementation(libs.kotlinx.coroutines.reactor)
         implementation(libs.slf4j.api)
-        implementation(libs.snakeyaml)
         implementation(libs.google.flogger.extensions)
       }
     }

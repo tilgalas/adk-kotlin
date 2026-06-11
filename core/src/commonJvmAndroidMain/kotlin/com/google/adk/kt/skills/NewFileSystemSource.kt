@@ -18,6 +18,7 @@ package com.google.adk.kt.skills
 
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
@@ -28,11 +29,10 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.SafeConstructor
 import org.yaml.snakeyaml.error.YAMLException
 
-/** JVM implementation of [SkillSource] using standard File I/O. */
 class NewFileSystemSource(private val skillsBaseDir: String) : SkillSource {
 
   override suspend fun listFrontmatters(): Result<List<Frontmatter>> = sourceRunCatching {
-    val baseDirPath = Path.of(skillsBaseDir)
+    val baseDirPath = Paths.get(skillsBaseDir)
     val baseDirStream =
       try {
         Files.list(baseDirPath)
@@ -60,12 +60,12 @@ class NewFileSystemSource(private val skillsBaseDir: String) : SkillSource {
     resourceDirectoryPath: String,
   ): Result<List<String>> = sourceRunCatching {
     validateBaseDir()
-    val skillDirPath = Path.of(skillsBaseDir).resolve(skillName)
+    val skillDirPath = Paths.get(skillsBaseDir).resolve(skillName)
     // Validates the skill.
     val unused = parseSkillFromDir(skillDirPath)
 
-    val normalizedPath = Path.of(resourceDirectoryPath).normalize()
-    if (normalizedPath.isAbsolute || normalizedPath.startsWith(Path.of(".."))) {
+    val normalizedPath = Paths.get(resourceDirectoryPath).normalize()
+    if (normalizedPath.isAbsolute || normalizedPath.startsWith(Paths.get(".."))) {
       throw SkillSourceException("Invalid resource path: $resourceDirectoryPath")
     }
 
@@ -100,23 +100,23 @@ class NewFileSystemSource(private val skillsBaseDir: String) : SkillSource {
 
   override suspend fun loadFrontmatter(skillName: String): Result<Frontmatter> = sourceRunCatching {
     validateBaseDir()
-    parseSkillFromDir(Path.of(skillsBaseDir).resolve(skillName)).first
+    parseSkillFromDir(Paths.get(skillsBaseDir).resolve(skillName)).first
   }
 
   override suspend fun loadInstructions(skillName: String): Result<String> = sourceRunCatching {
     validateBaseDir()
-    parseSkillFromDir(Path.of(skillsBaseDir).resolve(skillName)).second
+    parseSkillFromDir(Paths.get(skillsBaseDir).resolve(skillName)).second
   }
 
   override suspend fun loadResource(skillName: String, resourcePath: String): Result<ByteArray> =
     sourceRunCatching {
       validateBaseDir()
-      val skillDirPath = Path.of(skillsBaseDir).resolve(skillName)
+      val skillDirPath = Paths.get(skillsBaseDir).resolve(skillName)
       // Validates the skill.
       val unused = parseSkillFromDir(skillDirPath)
 
-      val normalizedPath = Path.of(resourcePath).normalize()
-      if (normalizedPath.startsWith(Path.of("..")) || normalizedPath.isAbsolute) {
+      val normalizedPath = Paths.get(resourcePath).normalize()
+      if (normalizedPath.startsWith(Paths.get("..")) || normalizedPath.isAbsolute) {
         throw SkillSourceException("Invalid resource path: $resourcePath")
       }
       if (
@@ -147,7 +147,7 @@ class NewFileSystemSource(private val skillsBaseDir: String) : SkillSource {
    * otherwise.
    */
   private fun validateBaseDir() {
-    val baseDirPath = Path.of(skillsBaseDir)
+    val baseDirPath = Paths.get(skillsBaseDir)
     if (!baseDirPath.exists()) {
       throw SkillSourceException("Configured skills base directory does not exist.")
     }
