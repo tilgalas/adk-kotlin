@@ -39,6 +39,7 @@ allprojects {
   version = "0.2.1-SNAPSHOT" // x-release-please-version
 
   repositories {
+    mavenLocal()
     mavenCentral()
     google()
   }
