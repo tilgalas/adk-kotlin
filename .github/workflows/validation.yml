@@ -67,6 +67,7 @@ jobs:
             -Pkotlin.daemon.jvmargs="-Xmx4g" \
             --no-daemon \
             --stacktrace \
+            --info \
             build
 
       - name: Detect wrongly formatted files
