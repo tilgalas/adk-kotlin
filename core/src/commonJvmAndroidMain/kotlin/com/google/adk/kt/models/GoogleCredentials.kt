@@ -15,17 +15,7 @@
  */
 package com.google.adk.kt.models
 
-import com.google.auth.oauth2.GoogleCredentials
+import com.google.auth.oauth2.GoogleCredentials as JavaGoogleCredentials
 
-/** JVM implementation of VertexCredentials. */
-data class VertexCredentials(
-  /** Google Cloud project name. */
-  val project: String? = null,
-  /** Google Cloud project location. */
-  val location: String? = null,
-  /**
-   * Google Cloud credentials. If not provided, the default credentials will be used via
-   * GoogleCredentials.getApplicationDefault().
-   */
-  val credentials: GoogleCredentials? = null,
-)
+/** On JVM and Android, ADK credentials are the Java Auth Library's `GoogleCredentials`. */
+actual typealias GoogleCredentials = JavaGoogleCredentials
