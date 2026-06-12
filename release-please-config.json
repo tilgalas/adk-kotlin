@@ -1,9 +1,14 @@
 {
-  "packages": { ".": {} },
-  "release-type": "simple",
-  "extra-files": [
-    "build.gradle.kts",
-    "core/src/commonMain/kotlin/com/google/adk/kt/Version.kt",
-    "README.md"
-  ]
+  "packages": {
+    ".": {
+      "release-type": "java",
+      "extra-files": [
+        "build.gradle.kts",
+        "core/src/commonMain/kotlin/com/google/adk/kt/Version.kt",
+        "README.md"
+      ]
+    }
+  },
+  "always-update": true,
+  "bootstrap-sha": "9580659f1af8b0ec39fe8200f65cb4ed2a1146c3"
 }
